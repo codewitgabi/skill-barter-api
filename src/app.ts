@@ -12,6 +12,7 @@ import compression from "compression";
 import sysLogger from "./utils/logger";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
+import authRoutes from "./routes/auth.route";
 
 const app: Express = express();
 
@@ -43,6 +44,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 // Routes
+
+app.use("/api/v1/auth", authRoutes);
 
 // Metrics endpoint
 

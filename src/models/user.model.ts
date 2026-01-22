@@ -131,7 +131,7 @@ const userSchema = new Schema<IUser>(
         /^[A-Za-z_]+\/[A-Za-z_]+$/,
         "Please provide a valid timezone (e.g., America/New_York)",
       ],
-      default: "UTC",
+      default: "Africa/Nairobi",
     },
   },
   {
@@ -154,8 +154,6 @@ const userSchema = new Schema<IUser>(
 );
 
 // Indexes
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
 userSchema.index({ city: 1, country: 1 });
 userSchema.index({ skills: 1 });
 
