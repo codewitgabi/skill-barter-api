@@ -17,6 +17,7 @@ export interface IUser extends Document {
   interests?: string[];
   language?: string;
   timezone?: string;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -133,6 +134,10 @@ const userSchema = new Schema<IUser>(
       ],
       default: "Africa/Nairobi",
     },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -156,6 +161,7 @@ const userSchema = new Schema<IUser>(
 // Indexes
 userSchema.index({ city: 1, country: 1 });
 userSchema.index({ skills: 1 });
+userSchema.index({ deletedAt: 1 });
 
 const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);
 

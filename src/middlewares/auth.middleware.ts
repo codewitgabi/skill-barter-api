@@ -43,8 +43,11 @@ export const authenticate = async (
       email: string;
     };
 
-    // Verify user still exists
-    const user = await User.findById(decoded.userId);
+    // Verify user still exists and is not soft-deleted
+    const user = await User.findOne({
+      _id: decoded.userId,
+      deletedAt: null,
+    });
     if (!user) {
       throw new UnauthorizedError("User no longer exists");
     }
