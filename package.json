@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/codewitgabi/skill-barter-backend#readme",
   "dependencies": {
+    "argon2": "^0.44.0",
     "class-validator": "^0.14.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
