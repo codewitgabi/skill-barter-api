@@ -1,0 +1,54 @@
+{
+  "name": "skill-barter-api",
+  "version": "0.1.0",
+  "description": "Skill barter api",
+  "main": "app.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon src/app.ts",
+    "build": "tsc",
+    "start": "node build/src/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codewitgabi/skill-barter-backend.git"
+  },
+  "keywords": [
+    "skill",
+    "trade"
+  ],
+  "author": "Gabriel Michael Ojomakpene (codewitgabi)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/codewitgabi/skill-barter-backend/issues"
+  },
+  "homepage": "https://github.com/codewitgabi/skill-barter-backend#readme",
+  "dependencies": {
+    "class-validator": "^0.14.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "http-status-codes": "^2.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.5",
+    "nodemailer": "^7.0.12",
+    "pino": "^10.2.1"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^25.0.10",
+    "@types/nodemailer": "^7.0.5",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
