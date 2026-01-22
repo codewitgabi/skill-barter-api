@@ -40,8 +40,6 @@ const notificationSettingsSchema = new Schema<INotificationSettings>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "User reference is required"],
-      unique: true, // Ensures one-to-one relationship
-      index: true,
     },
     email: {
       exchangeRequests: {

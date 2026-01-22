@@ -5,6 +5,7 @@ import OTP from "../models/otp.model";
 import TokenBlacklist from "../models/tokenBlacklist.model";
 import SkillToTeach from "../models/skillToTeach.model";
 import SkillToLearn from "../models/skillToLearn.model";
+import NotificationSettings from "../models/notificationSettings.model";
 import transporter from "../config/mail.config";
 import {
   JWT_SECRET,
@@ -184,6 +185,11 @@ class AuthService {
       }));
       await SkillToLearn.insertMany(skillsToLearnData);
     }
+
+    // Create notification settings for the user
+    await NotificationSettings.create({
+      user: user._id,
+    });
 
     // Delete verified OTP
     await OTP.deleteOne({ _id: verifiedOTP._id });
