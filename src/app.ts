@@ -14,6 +14,7 @@ import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
+import notificationSettingsRoutes from "./routes/notificationSettings.route";
 
 const app: Express = express();
 
@@ -48,6 +49,7 @@ app.use(compression());
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/notification-settings", notificationSettingsRoutes);
 
 // Metrics endpoint
 
