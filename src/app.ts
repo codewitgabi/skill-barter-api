@@ -15,6 +15,7 @@ import helmet from "helmet";
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import notificationSettingsRoutes from "./routes/notificationSettings.route";
+import connectionRoutes from "./routes/connection.route";
 
 const app: Express = express();
 
@@ -50,6 +51,7 @@ app.use(compression());
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/notification-settings", notificationSettingsRoutes);
+app.use("/api/v1/connections", connectionRoutes);
 
 // Metrics endpoint
 
