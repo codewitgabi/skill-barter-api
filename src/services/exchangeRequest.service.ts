@@ -124,9 +124,9 @@ class ExchangeRequestService {
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
 
-    // Build filter - user should be either requester or receiver
+    // Build filter - only return requests sent TO the current user (receiver)
     const filter: any = {
-      $or: [{ requester: userId }, { receiver: userId }],
+      receiver: userId,
     };
 
     // Filter by status if provided
