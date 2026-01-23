@@ -198,6 +198,160 @@ class ExchangeRequestService {
       httpStatus: StatusCodes.OK,
     });
   }
+
+  async acceptExchangeRequest(requestId: string, userId: string) {
+    // Find the exchange request
+    const exchangeRequest = await ExchangeRequest.findById(requestId);
+
+    if (!exchangeRequest) {
+      throw new NotFoundError("Exchange request not found");
+    }
+
+    // Verify that the user is the receiver
+    if (exchangeRequest.receiver.toString() !== userId) {
+      throw new BadRequestError(
+        "Only the receiver can accept an exchange request",
+      );
+    }
+
+    // Check if request is already accepted or declined
+    if (exchangeRequest.status !== ExchangeRequestStatus.PENDING) {
+      throw new BadRequestError(
+        `Exchange request has already been ${exchangeRequest.status}`,
+      );
+    }
+
+    // Update status to accepted
+    exchangeRequest.status = ExchangeRequestStatus.ACCEPTED;
+    await exchangeRequest.save();
+
+    // Populate requester and receiver details
+    await exchangeRequest.populate([
+      {
+        path: "requester",
+        select: "first_name last_name username profile_picture",
+      },
+      {
+        path: "receiver",
+        select: "first_name last_name username profile_picture",
+      },
+    ]);
+
+    const requestData = exchangeRequest.toObject();
+    const requesterData = requestData.requester as any;
+    const receiverData = requestData.receiver as any;
+
+    // Format response
+    const formattedRequest = {
+      id: requestData._id,
+      requester: {
+        id: requesterData._id,
+        name: `${requesterData.first_name} ${requesterData.last_name}`,
+        username: requesterData.username,
+        avatarUrl: requesterData.profile_picture || null,
+        initials:
+          requesterData.first_name.charAt(0).toUpperCase() +
+          requesterData.last_name.charAt(0).toUpperCase(),
+      },
+      receiver: {
+        id: receiverData._id,
+        name: `${receiverData.first_name} ${receiverData.last_name}`,
+        username: receiverData.username,
+        avatarUrl: receiverData.profile_picture || null,
+        initials:
+          receiverData.first_name.charAt(0).toUpperCase() +
+          receiverData.last_name.charAt(0).toUpperCase(),
+      },
+      message: requestData.message || null,
+      teachingSkill: requestData.teachingSkill,
+      learningSkill: requestData.learningSkill,
+      status: requestData.status,
+      createdAt: requestData.createdAt,
+    };
+
+    return SuccessResponse({
+      message: "Exchange request accepted successfully",
+      data: formattedRequest,
+      httpStatus: StatusCodes.OK,
+    });
+  }
+
+  async declineExchangeRequest(requestId: string, userId: string) {
+    // Find the exchange request
+    const exchangeRequest = await ExchangeRequest.findById(requestId);
+
+    if (!exchangeRequest) {
+      throw new NotFoundError("Exchange request not found");
+    }
+
+    // Verify that the user is the receiver
+    if (exchangeRequest.receiver.toString() !== userId) {
+      throw new BadRequestError(
+        "Only the receiver can decline an exchange request",
+      );
+    }
+
+    // Check if request is already accepted or declined
+    if (exchangeRequest.status !== ExchangeRequestStatus.PENDING) {
+      throw new BadRequestError(
+        `Exchange request has already been ${exchangeRequest.status}`,
+      );
+    }
+
+    // Update status to declined
+    exchangeRequest.status = ExchangeRequestStatus.DECLINED;
+    await exchangeRequest.save();
+
+    // Populate requester and receiver details
+    await exchangeRequest.populate([
+      {
+        path: "requester",
+        select: "first_name last_name username profile_picture",
+      },
+      {
+        path: "receiver",
+        select: "first_name last_name username profile_picture",
+      },
+    ]);
+
+    const requestData = exchangeRequest.toObject();
+    const requesterData = requestData.requester as any;
+    const receiverData = requestData.receiver as any;
+
+    // Format response
+    const formattedRequest = {
+      id: requestData._id,
+      requester: {
+        id: requesterData._id,
+        name: `${requesterData.first_name} ${requesterData.last_name}`,
+        username: requesterData.username,
+        avatarUrl: requesterData.profile_picture || null,
+        initials:
+          requesterData.first_name.charAt(0).toUpperCase() +
+          requesterData.last_name.charAt(0).toUpperCase(),
+      },
+      receiver: {
+        id: receiverData._id,
+        name: `${receiverData.first_name} ${receiverData.last_name}`,
+        username: receiverData.username,
+        avatarUrl: receiverData.profile_picture || null,
+        initials:
+          receiverData.first_name.charAt(0).toUpperCase() +
+          receiverData.last_name.charAt(0).toUpperCase(),
+      },
+      message: requestData.message || null,
+      teachingSkill: requestData.teachingSkill,
+      learningSkill: requestData.learningSkill,
+      status: requestData.status,
+      createdAt: requestData.createdAt,
+    };
+
+    return SuccessResponse({
+      message: "Exchange request declined successfully",
+      data: formattedRequest,
+      httpStatus: StatusCodes.OK,
+    });
+  }
 }
 
 const exchangeRequestService = new ExchangeRequestService();

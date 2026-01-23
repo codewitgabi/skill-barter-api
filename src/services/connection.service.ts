@@ -94,10 +94,7 @@ class ConnectionService {
 
     // Combine search and location conditions
     if (searchConditions.length > 0 && locationConditions.length > 0) {
-      filter.$and = [
-        { $or: searchConditions },
-        { $or: locationConditions },
-      ];
+      filter.$and = [{ $or: searchConditions }, { $or: locationConditions }];
     } else if (searchConditions.length > 0) {
       filter.$or = searchConditions;
     } else if (locationConditions.length > 0) {

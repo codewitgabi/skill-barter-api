@@ -75,7 +75,9 @@ const exchangeRequestSchema = new Schema<IExchangeRequest>(
 // Prevent users from sending requests to themselves
 exchangeRequestSchema.pre("save", async function () {
   if (this.requester.toString() === this.receiver.toString()) {
-    const error = new Error("Users cannot send exchange requests to themselves");
+    const error = new Error(
+      "Users cannot send exchange requests to themselves",
+    );
     (error as any).statusCode = 400;
     throw error;
   }

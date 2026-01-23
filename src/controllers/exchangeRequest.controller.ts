@@ -48,3 +48,51 @@ export const getExchangeRequests = catchAsync(
     return res.status(response.httpStatus).json(response);
   },
 );
+
+export const acceptExchangeRequest = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        status: "error",
+        message: "Unauthorized",
+      });
+    }
+
+    const requestId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const response = await exchangeRequestService.acceptExchangeRequest(
+      requestId,
+      userId,
+    );
+
+    return res.status(response.httpStatus).json(response);
+  },
+);
+
+export const declineExchangeRequest = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        status: "error",
+        message: "Unauthorized",
+      });
+    }
+
+    const requestId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const response = await exchangeRequestService.declineExchangeRequest(
+      requestId,
+      userId,
+    );
+
+    return res.status(response.httpStatus).json(response);
+  },
+);

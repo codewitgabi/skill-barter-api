@@ -1,5 +1,5 @@
 import { validateRequest } from "../middlewares/validation.middleware";
-import { body, query } from "express-validator";
+import { body, query, param } from "express-validator";
 import { ExchangeRequestStatus } from "../models/exchangeRequest.model";
 
 export const CreateExchangeRequestSchema = [
@@ -45,5 +45,14 @@ export const GetExchangeRequestsSchema = [
     .withMessage(
       `Status must be one of: ${Object.values(ExchangeRequestStatus).join(", ")}`,
     ),
+  validateRequest,
+];
+
+export const ExchangeRequestIdSchema = [
+  param("id")
+    .notEmpty()
+    .withMessage("Exchange request ID is required")
+    .isMongoId()
+    .withMessage("Exchange request ID must be a valid MongoDB ID"),
   validateRequest,
 ];
