@@ -55,12 +55,10 @@ app.use("/api/v1/notification-settings", notificationSettingsRoutes);
 app.use("/api/v1/connections", connectionRoutes);
 app.use("/api/v1/exchange-requests", exchangeRequestRoutes);
 
-// Metrics endpoint
-
 app.get("/", (req: Request, res: Response) => {
   const response = SuccessResponse({
     status: "success",
-    message: "Welcome to next chat server",
+    message: "Welcome to Skill Barter API",
     data: null,
   });
 
