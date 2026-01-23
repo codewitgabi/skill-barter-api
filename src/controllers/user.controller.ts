@@ -4,7 +4,6 @@ import userService from "../services/user.service";
 import { UnauthorizedError } from "../utils/api.errors";
 
 export const getUser = catchAsync(async (req: Request, res: Response) => {
-  console.log({ user: req.user });
   const userId = req.user?.userId;
 
   if (!userId) {

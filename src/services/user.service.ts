@@ -23,17 +23,24 @@ class UserService {
         : userData.city || userData.country || null;
 
     const responseData = {
+      id: userData._id,
       first_name: userData.first_name,
       last_name: userData.last_name,
       username: userData.username,
       email: userData.email,
       about: userData.about,
+      city: userData.city,
+      country: userData.country,
       location,
       website: userData.website,
+      profile_picture: userData.profile_picture,
+      weekly_availability: userData.weekly_availability,
       skills: userData.skills || [],
       interests: userData.interests || [],
       language: userData.language,
       timezone: userData.timezone,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
     };
 
     return SuccessResponse({
@@ -107,17 +114,24 @@ class UserService {
         : userData.city || userData.country || null;
 
     const responseData = {
+      id: userData._id,
       first_name: userData.first_name,
       last_name: userData.last_name,
       username: userData.username,
       email: userData.email,
       about: userData.about,
+      city: userData.city,
+      country: userData.country,
       location,
       website: userData.website,
+      profile_picture: userData.profile_picture,
+      weekly_availability: userData.weekly_availability,
       skills: userData.skills || [],
       interests: userData.interests || [],
       language: userData.language,
       timezone: userData.timezone,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
     };
 
     return SuccessResponse({
