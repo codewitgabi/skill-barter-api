@@ -88,6 +88,7 @@ const userSchema = new Schema<IUser>(
         /^https?:\/\/.+/,
         "Please provide a valid URL (must start with http:// or https://)",
       ],
+      default: null,
     },
     profile_picture: {
       type: String,
@@ -96,6 +97,7 @@ const userSchema = new Schema<IUser>(
         /^https?:\/\/.+/,
         "Please provide a valid URL (must start with http:// or https://)",
       ],
+      default: null,
     },
     weekly_availability: {
       type: Number,
@@ -132,7 +134,7 @@ const userSchema = new Schema<IUser>(
         /^[A-Za-z_]+\/[A-Za-z_]+$/,
         "Please provide a valid timezone (e.g., America/New_York)",
       ],
-      default: "Africa/Nairobi",
+      default: "Africa/Lagos",
     },
     deletedAt: {
       type: Date,

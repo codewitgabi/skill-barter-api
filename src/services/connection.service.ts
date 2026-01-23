@@ -192,6 +192,7 @@ class ConnectionService {
         rating: reviewData.rating,
         numberOfReviews: reviewData.numberOfReviews,
         bio: userData.about || null,
+        website: userData.website || null,
         teachingSkills: skillsToTeachMap.get(userId) || [],
         learningSkills: skillsToLearnMap.get(userId) || [],
       };

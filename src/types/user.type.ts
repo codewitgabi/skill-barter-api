@@ -6,7 +6,7 @@ export interface UpdateUserData {
   about?: string;
   city?: string;
   country?: string;
-  website?: string;
+  website?: string | null;
   skills?: string[];
   interests?: string[];
   language?: string;

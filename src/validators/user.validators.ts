@@ -52,12 +52,19 @@ export const UpdateUserSchema = [
   body("website")
     .optional()
     .trim()
-    .isURL()
+    .custom((value) => {
+      if (value === "" || value === null || value === undefined) {
+        return true; // Allow empty/null values to clear the website
+      }
+      // Validate URL format
+      if (!/^https?:\/\/.+/.test(value)) {
+        throw new Error("Website must start with http:// or https://");
+      }
+      return true;
+    })
     .withMessage(
       "Website must be a valid URL (must start with http:// or https://)",
-    )
-    .matches(/^https?:\/\/.+/)
-    .withMessage("Website must start with http:// or https://"),
+    ),
   body("skills")
     .optional()
     .isArray()

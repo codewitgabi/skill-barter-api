@@ -95,6 +95,14 @@ class UserService {
       updateData.email = updateData.email.toLowerCase().trim();
     }
 
+    // Handle website: convert empty strings to null
+    if (updateData.website !== undefined) {
+      updateData.website =
+        updateData.website && updateData.website.trim() !== ""
+          ? updateData.website.trim()
+          : null;
+    }
+
     // Update user
     const updatedUser = await User.findByIdAndUpdate(
       userId,

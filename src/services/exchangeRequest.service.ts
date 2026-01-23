@@ -72,11 +72,11 @@ class ExchangeRequestService {
     await exchangeRequest.populate([
       {
         path: "requester",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       },
       {
         path: "receiver",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       },
     ]);
 
@@ -92,6 +92,7 @@ class ExchangeRequestService {
         name: `${requesterData.first_name} ${requesterData.last_name}`,
         username: requesterData.username,
         avatarUrl: requesterData.profile_picture || null,
+        website: requesterData.website || null,
         initials:
           requesterData.first_name.charAt(0).toUpperCase() +
           requesterData.last_name.charAt(0).toUpperCase(),
@@ -101,6 +102,7 @@ class ExchangeRequestService {
         name: `${receiverData.first_name} ${receiverData.last_name}`,
         username: receiverData.username,
         avatarUrl: receiverData.profile_picture || null,
+        website: receiverData.website || null,
         initials:
           receiverData.first_name.charAt(0).toUpperCase() +
           receiverData.last_name.charAt(0).toUpperCase(),
@@ -138,11 +140,11 @@ class ExchangeRequestService {
     const exchangeRequests = await ExchangeRequest.find(filter)
       .populate({
         path: "requester",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       })
       .populate({
         path: "receiver",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -163,6 +165,7 @@ class ExchangeRequestService {
           name: `${requester.first_name} ${requester.last_name}`,
           username: requester.username,
           avatarUrl: requester.profile_picture || null,
+          website: requester.website || null,
           initials:
             requester.first_name.charAt(0).toUpperCase() +
             requester.last_name.charAt(0).toUpperCase(),
@@ -172,6 +175,7 @@ class ExchangeRequestService {
           name: `${receiver.first_name} ${receiver.last_name}`,
           username: receiver.username,
           avatarUrl: receiver.profile_picture || null,
+          website: receiver.website || null,
           initials:
             receiver.first_name.charAt(0).toUpperCase() +
             receiver.last_name.charAt(0).toUpperCase(),
@@ -229,11 +233,11 @@ class ExchangeRequestService {
     await exchangeRequest.populate([
       {
         path: "requester",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       },
       {
         path: "receiver",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       },
     ]);
 
@@ -249,6 +253,7 @@ class ExchangeRequestService {
         name: `${requesterData.first_name} ${requesterData.last_name}`,
         username: requesterData.username,
         avatarUrl: requesterData.profile_picture || null,
+        website: requesterData.website || null,
         initials:
           requesterData.first_name.charAt(0).toUpperCase() +
           requesterData.last_name.charAt(0).toUpperCase(),
@@ -258,6 +263,7 @@ class ExchangeRequestService {
         name: `${receiverData.first_name} ${receiverData.last_name}`,
         username: receiverData.username,
         avatarUrl: receiverData.profile_picture || null,
+        website: receiverData.website || null,
         initials:
           receiverData.first_name.charAt(0).toUpperCase() +
           receiverData.last_name.charAt(0).toUpperCase(),
@@ -306,11 +312,11 @@ class ExchangeRequestService {
     await exchangeRequest.populate([
       {
         path: "requester",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       },
       {
         path: "receiver",
-        select: "first_name last_name username profile_picture",
+        select: "first_name last_name username profile_picture website",
       },
     ]);
 
@@ -326,6 +332,7 @@ class ExchangeRequestService {
         name: `${requesterData.first_name} ${requesterData.last_name}`,
         username: requesterData.username,
         avatarUrl: requesterData.profile_picture || null,
+        website: requesterData.website || null,
         initials:
           requesterData.first_name.charAt(0).toUpperCase() +
           requesterData.last_name.charAt(0).toUpperCase(),
@@ -335,6 +342,7 @@ class ExchangeRequestService {
         name: `${receiverData.first_name} ${receiverData.last_name}`,
         username: receiverData.username,
         avatarUrl: receiverData.profile_picture || null,
+        website: receiverData.website || null,
         initials:
           receiverData.first_name.charAt(0).toUpperCase() +
           receiverData.last_name.charAt(0).toUpperCase(),
