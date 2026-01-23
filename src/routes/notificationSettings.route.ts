@@ -11,7 +11,7 @@ const router = Router();
 // All notification settings routes require authentication
 router.use(authenticate);
 
-router.get("/me", getNotificationSettings);
+router.get("/", getNotificationSettings);
 router.patch("/", UpdateNotificationSettingsSchema, updateNotificationSettings);
 
 export default router;

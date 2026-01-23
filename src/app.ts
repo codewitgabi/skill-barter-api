@@ -16,6 +16,7 @@ import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import notificationSettingsRoutes from "./routes/notificationSettings.route";
 import connectionRoutes from "./routes/connection.route";
+import exchangeRequestRoutes from "./routes/exchangeRequest.route";
 
 const app: Express = express();
 
@@ -52,6 +53,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/notification-settings", notificationSettingsRoutes);
 app.use("/api/v1/connections", connectionRoutes);
+app.use("/api/v1/exchange-requests", exchangeRequestRoutes);
 
 // Metrics endpoint
 
