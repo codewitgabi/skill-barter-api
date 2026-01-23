@@ -2,16 +2,14 @@ import { Request, Response } from "express";
 import catchAsync from "../utils/catch-async";
 import exchangeRequestService from "../services/exchangeRequest.service";
 import { ExchangeRequestStatus } from "../models/exchangeRequest.model";
+import { UnauthorizedError } from "../utils/api.errors";
 
 export const createExchangeRequest = catchAsync(
   async (req: Request, res: Response) => {
     const requesterId = req.user?.userId;
 
     if (!requesterId) {
-      return res.status(401).json({
-        status: "error",
-        message: "Unauthorized",
-      });
+      throw new UnauthorizedError("Unauthorized");
     }
 
     const response = await exchangeRequestService.createExchangeRequest(
@@ -28,10 +26,7 @@ export const getExchangeRequests = catchAsync(
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({
-        status: "error",
-        message: "Unauthorized",
-      });
+      throw new UnauthorizedError("Unauthorized");
     }
 
     const query = {
@@ -54,10 +49,7 @@ export const acceptExchangeRequest = catchAsync(
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({
-        status: "error",
-        message: "Unauthorized",
-      });
+      throw new UnauthorizedError("Unauthorized");
     }
 
     const requestId = Array.isArray(req.params.id)
@@ -78,10 +70,7 @@ export const declineExchangeRequest = catchAsync(
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({
-        status: "error",
-        message: "Unauthorized",
-      });
+      throw new UnauthorizedError("Unauthorized");
     }
 
     const requestId = Array.isArray(req.params.id)

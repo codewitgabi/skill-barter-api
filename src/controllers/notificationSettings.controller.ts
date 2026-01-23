@@ -1,16 +1,14 @@
 import { Request, Response } from "express";
 import catchAsync from "../utils/catch-async";
 import notificationSettingsService from "../services/notificationSettings.service";
+import { UnauthorizedError } from "../utils/api.errors";
 
 export const getNotificationSettings = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({
-        status: "error",
-        message: "Unauthorized",
-      });
+      throw new UnauthorizedError("Unauthorized");
     }
 
     const response =
@@ -25,10 +23,7 @@ export const updateNotificationSettings = catchAsync(
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({
-        status: "error",
-        message: "Unauthorized",
-      });
+      throw new UnauthorizedError("Unauthorized");
     }
 
     const response =
