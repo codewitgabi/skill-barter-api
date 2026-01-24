@@ -175,12 +175,16 @@ class SessionBookingService {
     const pendingBookings = formattedBookings.filter(
       (booking) => booking.status === SessionBookingStatus.PENDING,
     );
+    const changesRequestedBookings = formattedBookings.filter(
+      (booking) => booking.status === SessionBookingStatus.CHANGES_REQUESTED,
+    );
 
     return SuccessResponse({
       message: "Session bookings retrieved successfully",
       data: {
         draftBookings,
         pendingBookings,
+        changesRequestedBookings,
         pagination: {
           page,
           limit,
