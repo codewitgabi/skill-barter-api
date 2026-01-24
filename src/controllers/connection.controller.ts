@@ -12,7 +12,6 @@ export const getConnections = catchAsync(
       location: req.query.location as string | undefined,
     };
 
-    // Authentication is optional - exclude current user if authenticated
     const currentUserId = req.user?.userId;
 
     const response = await connectionService.getConnections(
