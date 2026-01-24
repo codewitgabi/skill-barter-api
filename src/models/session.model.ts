@@ -163,9 +163,7 @@ const sessionSchema = new Schema<ISession>(
 // Prevent instructor and learner from being the same person
 sessionSchema.pre("save", async function () {
   if (this.instructor.toString() === this.learner.toString()) {
-    const error = new Error(
-      "Instructor and learner cannot be the same person",
-    );
+    const error = new Error("Instructor and learner cannot be the same person");
     (error as any).statusCode = 400;
     throw error;
   }
@@ -181,9 +179,7 @@ sessionSchema.pre("save", async function () {
   const now = new Date();
   const scheduledDate = (this as any).scheduledDate as Date;
   const duration = (this as any).duration as number;
-  const endTime = new Date(
-    scheduledDate.getTime() + duration * 60 * 1000,
-  );
+  const endTime = new Date(scheduledDate.getTime() + duration * 60 * 1000);
 
   // If session hasn't started yet, it's scheduled
   if (now < scheduledDate) {
