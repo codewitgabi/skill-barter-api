@@ -24,3 +24,25 @@ export const getSessionBookings = catchAsync(
     return res.status(response.httpStatus).json(response);
   },
 );
+
+export const updateSessionBooking = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const bookingId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const response = await sessionBookingService.updateSessionBooking(
+      bookingId,
+      userId,
+      req.body,
+    );
+
+    return res.status(response.httpStatus).json(response);
+  },
+);

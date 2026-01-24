@@ -1,6 +1,13 @@
 import { Router } from "express";
-import { getSessionBookings } from "../controllers/sessionBooking.controller";
-import { GetSessionBookingsSchema } from "../validators/sessionBooking.validators";
+import {
+  getSessionBookings,
+  updateSessionBooking,
+} from "../controllers/sessionBooking.controller";
+import {
+  GetSessionBookingsSchema,
+  UpdateSessionBookingSchema,
+  SessionBookingIdSchema,
+} from "../validators/sessionBooking.validators";
 import { authenticate } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -8,5 +15,11 @@ const router = Router();
 router.use(authenticate);
 
 router.get("/", GetSessionBookingsSchema, getSessionBookings);
+router.patch(
+  "/:id",
+  SessionBookingIdSchema,
+  UpdateSessionBookingSchema,
+  updateSessionBooking,
+);
 
 export default router;
