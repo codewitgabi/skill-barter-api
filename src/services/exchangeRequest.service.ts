@@ -6,6 +6,7 @@ import User from "../models/user.model";
 import { BadRequestError, NotFoundError } from "../utils/api.errors";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
+import sessionBookingService from "./sessionBooking.service";
 
 interface CreateExchangeRequestData {
   receiverId: string;
@@ -228,6 +229,18 @@ class ExchangeRequestService {
     // Update status to accepted
     exchangeRequest.status = ExchangeRequestStatus.ACCEPTED;
     await exchangeRequest.save();
+
+    // Create session bookings for both users
+    try {
+      await sessionBookingService.createSessionBookingsForExchangeRequest(
+        requestId,
+      );
+    } catch (error: any) {
+      console.error(
+        "Failed to create session bookings after exchange request acceptance:",
+        error.message,
+      );
+    }
 
     // Populate requester and receiver details
     await exchangeRequest.populate([

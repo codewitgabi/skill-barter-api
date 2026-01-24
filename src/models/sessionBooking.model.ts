@@ -1,9 +1,10 @@
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
 
 export enum SessionBookingStatus {
-  PENDING = "pending",
-  ACCEPTED = "accepted",
-  CHANGES_REQUESTED = "changes_requested",
+  DRAFT = "draft", // Booking created with defaults, not yet configured by proposer
+  PENDING = "pending", // Booking configured and ready for recipient to review
+  ACCEPTED = "accepted", // Booking accepted by recipient
+  CHANGES_REQUESTED = "changes_requested", // Recipient requested changes
 }
 
 export enum DayOfWeek {
@@ -65,7 +66,7 @@ const sessionBookingSchema = new Schema<ISessionBooking>(
         values: Object.values(SessionBookingStatus),
         message: `Status must be one of: ${Object.values(SessionBookingStatus).join(", ")}`,
       },
-      default: SessionBookingStatus.PENDING,
+      default: SessionBookingStatus.DRAFT,
     },
     daysPerWeek: {
       type: Number,
