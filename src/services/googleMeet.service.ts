@@ -83,7 +83,13 @@ class GoogleMeetService {
     try {
       const meetClient = await this.getAuthenticatedClient();
 
-      const request = {};
+      const request = {
+        space: {
+          config: {
+            accessType: 1, // OPEN - allows anyone with link to join without approval
+          },
+        },
+      };
 
       const response = await meetClient.createSpace(request);
 
