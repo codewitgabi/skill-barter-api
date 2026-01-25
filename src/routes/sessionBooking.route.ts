@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getSessionBookings,
+  getSessionBooking,
   updateSessionBooking,
   acceptSessionBooking,
 } from "../controllers/sessionBooking.controller";
@@ -16,6 +17,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get("/", GetSessionBookingsSchema, getSessionBookings);
+router.get("/:id", SessionBookingIdSchema, getSessionBooking);
 router.patch(
   "/:id",
   SessionBookingIdSchema,

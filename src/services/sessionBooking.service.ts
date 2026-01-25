@@ -199,6 +199,96 @@ class SessionBookingService {
     });
   }
 
+  async getSessionBooking(bookingId: string, userId: string) {
+    const booking = await SessionBooking.findById(bookingId)
+      .populate({
+        path: "exchangeRequest",
+        select: "teachingSkill learningSkill status",
+      })
+      .populate({
+        path: "proposer",
+        select: "first_name last_name username profile_picture",
+      })
+      .populate({
+        path: "recipient",
+        select: "first_name last_name username profile_picture",
+      });
+
+    if (!booking) {
+      throw new NotFoundError("Session booking not found");
+    }
+
+    const proposerId = booking.proposer._id.toString();
+    const recipientId = booking.recipient._id.toString();
+
+    console.log({ proposerId, recipientId, userId })
+
+    if (proposerId !== userId && recipientId !== userId) {
+      throw new ForbiddenError(
+        "You are not authorized to view this session booking",
+      );
+    }
+
+    if (
+      booking.status === SessionBookingStatus.DRAFT &&
+      recipientId === userId
+    ) {
+      throw new NotFoundError("Session booking not found");
+    }
+
+    const bookingData = booking.toObject();
+    const proposer = bookingData.proposer as any;
+    const recipient = bookingData.recipient as any;
+    const exchangeRequest = bookingData.exchangeRequest as any;
+    const userRole = proposerId === userId ? "proposer" : "recipient";
+
+    const formattedBooking = {
+      id: bookingData._id,
+      userRole,
+      exchangeRequest: {
+        id: exchangeRequest._id,
+        teachingSkill: exchangeRequest.teachingSkill,
+        learningSkill: exchangeRequest.learningSkill,
+        status: exchangeRequest.status,
+      },
+      proposer: {
+        id: proposer._id,
+        name: `${proposer.first_name} ${proposer.last_name}`,
+        username: proposer.username,
+        avatarUrl: proposer.profile_picture || null,
+        initials:
+          proposer.first_name.charAt(0).toUpperCase() +
+          proposer.last_name.charAt(0).toUpperCase(),
+      },
+      recipient: {
+        id: recipient._id,
+        name: `${recipient.first_name} ${recipient.last_name}`,
+        username: recipient.username,
+        avatarUrl: recipient.profile_picture || null,
+        initials:
+          recipient.first_name.charAt(0).toUpperCase() +
+          recipient.last_name.charAt(0).toUpperCase(),
+      },
+      skill: bookingData.skill,
+      status: bookingData.status,
+      daysPerWeek: bookingData.daysPerWeek,
+      daysOfWeek: bookingData.daysOfWeek,
+      startTime: bookingData.startTime,
+      duration: bookingData.duration,
+      totalSessions: bookingData.totalSessions,
+      message: bookingData.message || null,
+      version: bookingData.version,
+      createdAt: bookingData.createdAt,
+      updatedAt: bookingData.updatedAt,
+    };
+
+    return SuccessResponse({
+      message: "Session booking retrieved successfully",
+      data: formattedBooking,
+      httpStatus: StatusCodes.OK,
+    });
+  }
+
   async updateSessionBooking(
     bookingId: string,
     userId: string,
