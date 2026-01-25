@@ -7,6 +7,7 @@ import ExchangeRequest, {
   ExchangeRequestStatus,
 } from "../models/exchangeRequest.model";
 import Session, { SessionType, SessionLocation } from "../models/session.model";
+import googleMeetService from "./googleMeet.service";
 import {
   BadRequestError,
   NotFoundError,
@@ -423,7 +424,7 @@ class SessionBookingService {
       );
     }
 
-    const sessions = this.generateSessionsFromBooking(
+    const sessions = await this.generateSessionsFromBooking(
       refreshedBooking,
       exchangeRequest,
     );
@@ -437,7 +438,7 @@ class SessionBookingService {
     });
   }
 
-  private generateSessionsFromBooking(
+  private async generateSessionsFromBooking(
     booking: ISessionBooking,
     exchangeRequest: any,
   ) {
@@ -485,6 +486,16 @@ class SessionBookingService {
       const scheduledDate = new Date(sessionDate);
       scheduledDate.setHours(hours, minutes, 0, 0);
 
+      let meetingLink = "";
+      try {
+        meetingLink = await googleMeetService.createMeetingSpace();
+      } catch (error: any) {
+        console.error(
+          `Failed to create Google Meet for session ${i + 1}:`,
+          error.message,
+        );
+      }
+
       sessions.push({
         sessionBooking: booking._id,
         exchangeRequest: booking.exchangeRequest,
@@ -495,6 +506,7 @@ class SessionBookingService {
         scheduledDate,
         duration,
         location: SessionLocation.ONLINE,
+        meetingLink,
       });
     }
 

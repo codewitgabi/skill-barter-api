@@ -142,3 +142,6 @@ vite.config.ts.timestamp-*
 bash.exe.stackdump
 
 build/
+credentials.json
+get-refresh-token.js
+token.json
