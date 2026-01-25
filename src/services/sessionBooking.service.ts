@@ -488,7 +488,14 @@ class SessionBookingService {
 
       let meetingLink = "";
       try {
-        meetingLink = await googleMeetService.createMeetingSpace();
+        const summary = `Skill Session: ${skill}`;
+        const description = `Teaching session for ${skill}`;
+        meetingLink = await googleMeetService.createScheduledMeeting(
+          scheduledDate,
+          duration,
+          summary,
+          description,
+        );
       } catch (error: any) {
         console.error(
           `Failed to create Google Meet for session ${i + 1}:`,
