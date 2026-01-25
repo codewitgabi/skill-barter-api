@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   getSessionBookings,
   updateSessionBooking,
+  acceptSessionBooking,
 } from "../controllers/sessionBooking.controller";
 import {
   GetSessionBookingsSchema,
@@ -20,6 +21,11 @@ router.patch(
   SessionBookingIdSchema,
   UpdateSessionBookingSchema,
   updateSessionBooking,
+);
+router.patch(
+  "/:id/accept",
+  SessionBookingIdSchema,
+  acceptSessionBooking,
 );
 
 export default router;

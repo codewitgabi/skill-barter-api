@@ -46,3 +46,24 @@ export const updateSessionBooking = catchAsync(
     return res.status(response.httpStatus).json(response);
   },
 );
+
+export const acceptSessionBooking = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const bookingId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const response = await sessionBookingService.acceptSessionBooking(
+      bookingId,
+      userId,
+    );
+
+    return res.status(response.httpStatus).json(response);
+  },
+);

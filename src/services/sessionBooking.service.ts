@@ -6,6 +6,7 @@ import SessionBooking, {
 import ExchangeRequest, {
   ExchangeRequestStatus,
 } from "../models/exchangeRequest.model";
+import Session, { SessionType, SessionLocation } from "../models/session.model";
 import {
   BadRequestError,
   NotFoundError,
@@ -350,6 +351,222 @@ class SessionBookingService {
       data: formattedBooking,
       httpStatus: StatusCodes.OK,
     });
+  }
+
+  async acceptSessionBooking(bookingId: string, userId: string) {
+    const booking = await SessionBooking.findById(bookingId).populate(
+      "exchangeRequest",
+    );
+
+    if (!booking) {
+      throw new NotFoundError("Session booking not found");
+    }
+
+    const bookingData = booking.toObject ? booking.toObject() : booking;
+    
+    if (
+      !bookingData ||
+      !bookingData.daysPerWeek ||
+      !bookingData.daysOfWeek ||
+      !Array.isArray(bookingData.daysOfWeek) ||
+      bookingData.daysOfWeek.length === 0 ||
+      !bookingData.startTime ||
+      !bookingData.totalSessions ||
+      !bookingData.duration
+    ) {
+      throw new BadRequestError(
+        "Session booking is missing required fields for session generation",
+      );
+    }
+
+    const recipientId = booking.recipient.toString();
+
+    if (recipientId !== userId) {
+      throw new ForbiddenError(
+        "Only the recipient can accept a session booking",
+      );
+    }
+
+    if (booking.status !== SessionBookingStatus.PENDING) {
+      throw new BadRequestError(
+        "Only pending session bookings can be accepted",
+      );
+    }
+
+    const exchangeRequest = booking.exchangeRequest as any;
+
+    booking.status = SessionBookingStatus.ACCEPTED;
+    await booking.save();
+
+    const refreshedBooking = await SessionBooking.findById(bookingId);
+    if (!refreshedBooking) {
+      throw new NotFoundError("Session booking not found after update");
+    }
+
+    const refreshedBookingData = refreshedBooking.toObject
+      ? refreshedBooking.toObject()
+      : refreshedBooking;
+
+    if (
+      !refreshedBookingData ||
+      !refreshedBookingData.daysPerWeek ||
+      !refreshedBookingData.daysOfWeek ||
+      !Array.isArray(refreshedBookingData.daysOfWeek) ||
+      refreshedBookingData.daysOfWeek.length === 0 ||
+      !refreshedBookingData.startTime ||
+      !refreshedBookingData.totalSessions ||
+      !refreshedBookingData.duration ||
+      !refreshedBookingData.skill
+    ) {
+      throw new BadRequestError(
+        "Session booking is missing required fields for session generation",
+      );
+    }
+
+    const sessions = this.generateSessionsFromBooking(
+      refreshedBooking,
+      exchangeRequest,
+    );
+
+    await Session.insertMany(sessions);
+
+    return SuccessResponse({
+      message: "Session booking accepted and sessions created successfully",
+      data: null,
+      httpStatus: StatusCodes.OK,
+    });
+  }
+
+  private generateSessionsFromBooking(
+    booking: ISessionBooking,
+    exchangeRequest: any,
+  ) {
+    if (
+      !booking ||
+      !booking.daysOfWeek ||
+      !Array.isArray(booking.daysOfWeek) ||
+      booking.daysOfWeek.length === 0 ||
+      !booking.totalSessions ||
+      !booking.startTime ||
+      !booking.duration ||
+      !booking.skill
+    ) {
+      throw new BadRequestError(
+        "Session booking is missing required fields for session generation",
+      );
+    }
+
+    const sessions: any[] = [];
+    const { daysOfWeek, totalSessions, startTime, duration, skill } = booking;
+    
+    if (!booking.proposer || !booking.recipient) {
+      throw new BadRequestError(
+        "Session booking is missing proposer or recipient information",
+      );
+    }
+    
+    const proposerId = booking.proposer.toString();
+    const recipientId = booking.recipient.toString();
+
+    const startDate = this.getStartDate(daysOfWeek);
+    const [hours, minutes] = startTime.split(":").map(Number);
+
+    for (let i = 0; i < totalSessions; i++) {
+      const dayIndex = i % daysOfWeek.length;
+      const weekNumber = Math.floor(i / daysOfWeek.length);
+      const dayName = daysOfWeek[dayIndex];
+
+      const sessionDate = this.getNextDateForDay(
+        startDate,
+        dayName,
+        weekNumber,
+      );
+
+      const scheduledDate = new Date(sessionDate);
+      scheduledDate.setHours(hours, minutes, 0, 0);
+
+      sessions.push({
+        sessionBooking: booking._id,
+        exchangeRequest: booking.exchangeRequest,
+        instructor: proposerId,
+        learner: recipientId,
+        skill,
+        type: SessionType.TEACHING,
+        scheduledDate,
+        duration,
+        location: SessionLocation.ONLINE,
+      });
+    }
+
+    return sessions;
+  }
+
+
+  private getStartDate(daysOfWeek: DayOfWeek[]): Date {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    const todayDayName = dayNames[today.getDay()];
+    const dayIndices = daysOfWeek.map((day) => dayNames.indexOf(day));
+
+    if (dayIndices.includes(today.getDay())) {
+      return today;
+    }
+
+    const nextDayIndex = dayIndices.find((idx) => idx > today.getDay());
+    if (nextDayIndex !== undefined) {
+      const daysUntil = nextDayIndex - today.getDay();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() + daysUntil);
+      return startDate;
+    }
+
+    const firstDayIndex = Math.min(...dayIndices);
+    const daysUntil = 7 - today.getDay() + firstDayIndex;
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() + daysUntil);
+    return startDate;
+  }
+
+  private getNextDateForDay(
+    startDate: Date,
+    dayName: DayOfWeek,
+    weekOffset: number,
+  ): Date {
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    const targetDayIndex = dayNames.indexOf(dayName);
+    const startDayIndex = startDate.getDay();
+
+    let daysToAdd = targetDayIndex - startDayIndex;
+    if (daysToAdd < 0) {
+      daysToAdd += 7;
+    }
+
+    const firstOccurrence = new Date(startDate);
+    firstOccurrence.setDate(startDate.getDate() + daysToAdd);
+
+    const targetDate = new Date(firstOccurrence);
+    targetDate.setDate(firstOccurrence.getDate() + weekOffset * 7);
+    return targetDate;
   }
 }
 
