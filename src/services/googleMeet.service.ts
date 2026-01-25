@@ -173,6 +173,8 @@ class GoogleMeetService {
     duration: number,
     summary: string = "Session",
     description?: string,
+    instructorEmail?: string,
+    learnerEmail?: string,
   ): Promise<string> {
     try {
       // Create a Meet space with OPEN access
@@ -183,6 +185,14 @@ class GoogleMeetService {
 
       const startTime = new Date(scheduledDate);
       const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+
+      const attendees = [];
+      if (instructorEmail) {
+        attendees.push({ email: instructorEmail });
+      }
+      if (learnerEmail) {
+        attendees.push({ email: learnerEmail });
+      }
 
       const event = {
         summary,
@@ -195,6 +205,7 @@ class GoogleMeetService {
           dateTime: endTime.toISOString(),
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
+        attendees: attendees.length > 0 ? attendees : undefined,
         conferenceData: {
           entryPoints: [
             {

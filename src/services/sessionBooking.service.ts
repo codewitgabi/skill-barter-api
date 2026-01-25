@@ -7,6 +7,7 @@ import ExchangeRequest, {
   ExchangeRequestStatus,
 } from "../models/exchangeRequest.model";
 import Session, { SessionType, SessionLocation } from "../models/session.model";
+import User from "../models/user.model";
 import googleMeetService from "./googleMeet.service";
 import {
   BadRequestError,
@@ -469,6 +470,18 @@ class SessionBookingService {
     const proposerId = booking.proposer.toString();
     const recipientId = booking.recipient.toString();
 
+    // Fetch user emails for calendar invitations
+    const [instructor, learner] = await Promise.all([
+      User.findById(proposerId).select("email"),
+      User.findById(recipientId).select("email"),
+    ]);
+
+    if (!instructor || !learner) {
+      throw new BadRequestError(
+        "Instructor or learner not found",
+      );
+    }
+
     const startDate = this.getStartDate(daysOfWeek);
     const [hours, minutes] = startTime.split(":").map(Number);
 
@@ -495,6 +508,8 @@ class SessionBookingService {
           duration,
           summary,
           description,
+          instructor.email,
+          learner.email,
         );
       } catch (error: any) {
         console.error(
