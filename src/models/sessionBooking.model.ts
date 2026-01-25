@@ -5,6 +5,7 @@ export enum SessionBookingStatus {
   PENDING = "pending", // Booking configured and ready for recipient to review
   ACCEPTED = "accepted", // Booking accepted by recipient
   CHANGES_REQUESTED = "changes_requested", // Recipient requested changes
+  CHANGES_MADE = "changes_made", // Proposer made changes in response to recipient's request, waiting for recipient review
 }
 
 export enum DayOfWeek {

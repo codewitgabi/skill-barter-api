@@ -181,6 +181,9 @@ class SessionBookingService {
     const changesRequestedBookings = formattedBookings.filter(
       (booking) => booking.status === SessionBookingStatus.CHANGES_REQUESTED,
     );
+    const changesMadeBookings = formattedBookings.filter(
+      (booking) => booking.status === SessionBookingStatus.CHANGES_MADE,
+    );
 
     return SuccessResponse({
       message: "Session bookings retrieved successfully",
@@ -188,6 +191,7 @@ class SessionBookingService {
         draftBookings,
         pendingBookings,
         changesRequestedBookings,
+        changesMadeBookings,
         pagination: {
           page,
           limit,
@@ -220,8 +224,6 @@ class SessionBookingService {
 
     const proposerId = booking.proposer._id.toString();
     const recipientId = booking.recipient._id.toString();
-
-    console.log({ proposerId, recipientId, userId })
 
     if (proposerId !== userId && recipientId !== userId) {
       throw new ForbiddenError(
@@ -352,6 +354,17 @@ class SessionBookingService {
       }
 
       if (
+        booking.status === SessionBookingStatus.CHANGES_REQUESTED &&
+        (updateData.daysPerWeek !== undefined ||
+          updateData.daysOfWeek !== undefined ||
+          updateData.startTime !== undefined ||
+          updateData.duration !== undefined ||
+          updateData.totalSessions !== undefined)
+      ) {
+        updateFields.status = SessionBookingStatus.CHANGES_MADE;
+      }
+
+      if (
         updateData.daysPerWeek !== undefined ||
         updateData.daysOfWeek !== undefined ||
         updateData.startTime !== undefined ||
@@ -479,9 +492,12 @@ class SessionBookingService {
       );
     }
 
-    if (booking.status !== SessionBookingStatus.PENDING) {
+    if (
+      booking.status !== SessionBookingStatus.PENDING &&
+      booking.status !== SessionBookingStatus.CHANGES_MADE
+    ) {
       throw new BadRequestError(
-        "Only pending session bookings can be accepted",
+        "Only pending or changes_made session bookings can be accepted",
       );
     }
 
