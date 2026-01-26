@@ -3,6 +3,7 @@ import {
   getUser,
   updateUser,
   deleteUser,
+  getQuickStats,
 } from "../controllers/user.controller";
 import { UpdateUserSchema } from "../validators/user.validators";
 import { authenticate } from "../middlewares/auth.middleware";
@@ -13,6 +14,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get("/me", getUser);
+router.get("/me/stats", getQuickStats);
 router.patch("/me", UpdateUserSchema, updateUser);
 router.delete("/me", deleteUser);
 

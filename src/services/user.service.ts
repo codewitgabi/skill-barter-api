@@ -1,4 +1,10 @@
+import mongoose from "mongoose";
 import User, { IUser } from "../models/user.model";
+import ExchangeRequest, {
+  ExchangeRequestStatus,
+} from "../models/exchangeRequest.model";
+import Session, { SessionStatus } from "../models/session.model";
+import Review from "../models/review.model";
 import { NotFoundError, BadRequestError } from "../utils/api.errors";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
@@ -167,6 +173,82 @@ class UserService {
     return SuccessResponse({
       message: "User deleted successfully",
       data: null,
+      httpStatus: StatusCodes.OK,
+    });
+  }
+
+  async getQuickStats(userId: string) {
+    // Check if user exists
+    const user = await User.findOne({
+      _id: userId,
+      deletedAt: null,
+    });
+
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    // Calculate all stats in parallel
+    const [
+      exchanges,
+      active,
+      ratingData,
+      learned,
+      taught,
+    ] = await Promise.all([
+      // Exchanges: Total exchange requests where user is requester or receiver
+      ExchangeRequest.countDocuments({
+        $or: [{ requester: userId }, { receiver: userId }],
+      }),
+
+      // Active: Number of active sessions
+      Session.countDocuments({
+        $or: [{ instructor: userId }, { learner: userId }],
+        status: SessionStatus.ACTIVE,
+      }),
+
+      // Rating: Average rating from reviews
+      Review.aggregate([
+        { $match: { reviewedUser: new mongoose.Types.ObjectId(userId) } },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ]),
+
+      // Learned: Completed sessions where user is the learner
+      Session.countDocuments({
+        learner: userId,
+        status: SessionStatus.COMPLETED,
+      }),
+
+      // Taught: Completed sessions where user is the instructor
+      Session.countDocuments({
+        instructor: userId,
+        status: SessionStatus.COMPLETED,
+      }),
+    ]);
+
+    // Calculate average rating
+    const averageRating =
+      ratingData.length > 0 && ratingData[0].averageRating
+        ? Math.round(ratingData[0].averageRating * 10) / 10
+        : 0;
+
+    const stats = {
+      exchanges,
+      active,
+      rating: averageRating,
+      learned,
+      taught,
+    };
+
+    return SuccessResponse({
+      message: "Quick stats retrieved successfully",
+      data: stats,
       httpStatus: StatusCodes.OK,
     });
   }
