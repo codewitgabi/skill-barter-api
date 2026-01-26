@@ -3,6 +3,7 @@ import User from "../models/user.model";
 import SkillToTeach from "../models/skillToTeach.model";
 import SkillToLearn from "../models/skillToLearn.model";
 import Review from "../models/review.model";
+import ExchangeRequest from "../models/exchangeRequest.model";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
 
@@ -24,6 +25,28 @@ class ConnectionService {
     const filter: any = {
       deletedAt: null,
     };
+
+    // Collect excluded user IDs (current user + users with exchange requests)
+    const excludedUserIds = new Set<string>();
+    if (currentUserId) {
+      excludedUserIds.add(currentUserId);
+
+      // Get users who have exchange requests with current user
+      const exchangeRequests = await ExchangeRequest.find({
+        $or: [{ requester: currentUserId }, { receiver: currentUserId }],
+      }).select("requester receiver");
+
+      exchangeRequests.forEach((request) => {
+        const requesterId = request.requester.toString();
+        const receiverId = request.receiver.toString();
+        if (requesterId !== currentUserId) {
+          excludedUserIds.add(requesterId);
+        }
+        if (receiverId !== currentUserId) {
+          excludedUserIds.add(receiverId);
+        }
+      });
+    }
 
     // Build search conditions
     const searchConditions: any[] = [];
@@ -63,8 +86,13 @@ class ConnectionService {
       ];
       const skillUserIds = [...new Set(allSkillUserIds)]; // Remove duplicates
 
-      if (skillUserIds.length === 0) {
-        // No users have this skill
+      // Filter out excluded users
+      const filteredSkillUserIds = skillUserIds.filter(
+        (id) => !excludedUserIds.has(id),
+      );
+
+      if (filteredSkillUserIds.length === 0) {
+        // No users have this skill after exclusions
         return SuccessResponse({
           message: "Connections retrieved successfully",
           data: {
@@ -80,16 +108,16 @@ class ConnectionService {
         });
       }
 
-      // Filter by skill user IDs, excluding current user if provided
-      const filteredSkillUserIds = currentUserId
-        ? skillUserIds.filter((id) => id !== currentUserId)
-        : skillUserIds;
       filter._id = {
         $in: filteredSkillUserIds.map((id) => new mongoose.Types.ObjectId(id)),
       };
-    } else if (currentUserId) {
-      // Exclude current user if no skill filter
-      filter._id = { $ne: currentUserId };
+    } else if (excludedUserIds.size > 0) {
+      // Exclude current user and users with exchange requests
+      filter._id = {
+        $nin: Array.from(excludedUserIds).map(
+          (id) => new mongoose.Types.ObjectId(id),
+        ),
+      };
     }
 
     // Combine search and location conditions
