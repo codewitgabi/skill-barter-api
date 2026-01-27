@@ -19,6 +19,7 @@ import connectionRoutes from "./routes/connection.route";
 import exchangeRequestRoutes from "./routes/exchangeRequest.route";
 import sessionBookingRoutes from "./routes/sessionBooking.route";
 import sessionRoutes from "./routes/session.route";
+import statsRoutes from "./routes/stats.route";
 
 const app: Express = express();
 
@@ -58,6 +59,7 @@ app.use("/api/v1/connections", connectionRoutes);
 app.use("/api/v1/exchange-requests", exchangeRequestRoutes);
 app.use("/api/v1/session-bookings", sessionBookingRoutes);
 app.use("/api/v1/sessions", sessionRoutes);
+app.use("/api/v1/stats", statsRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   const response = SuccessResponse({
