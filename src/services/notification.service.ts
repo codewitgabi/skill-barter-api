@@ -4,7 +4,7 @@ import {
 } from "../models/notification.model";
 import User from "../models/user.model";
 import NotificationSettings from "../models/notificationSettings.model";
-import { FRONTEND_URL, EMAIL_USER } from "../utils/constants";
+import { FRONTEND_URL } from "../utils/constants";
 import { NotFoundError } from "../utils/api.errors";
 import transporter from "../config/mail.config";
 import { firestore as db } from "../config/firebase.config";
@@ -113,7 +113,6 @@ class NotificationService {
   ): Promise<void> {
     try {
       const mailOptions = {
-        from: EMAIL_USER,
         to: email,
         subject,
         html,

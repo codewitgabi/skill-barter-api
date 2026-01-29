@@ -75,17 +75,84 @@ class AuthService {
 
     // Send email
     const mailOptions = {
-      from: process.env.EMAIL_USER,
       to: email,
-      subject: "Email Verification - Skill Barter",
+      subject: "Verify Your Email - Skill Barter",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Email Verification</h2>
-          <p>Your verification code is:</p>
-          <h1 style="color: #4CAF50; font-size: 32px; text-align: center; letter-spacing: 5px;">${otp}</h1>
-          <p>This code will expire in 10 minutes.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
-        </div>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f7fa;">
+            <tr>
+              <td style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px 16px 0 0;">
+                      <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">Skill Barter</h1>
+                      <p style="margin: 8px 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">Email Verification</p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px;">
+                      <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6;">
+                        Welcome to <strong>Skill Barter</strong>! 🎉
+                      </p>
+                      <p style="margin: 0 0 30px; color: #6b7280; font-size: 15px; line-height: 1.6;">
+                        You're just one step away from joining our community. Use the verification code below to complete your registration.
+                      </p>
+                      
+                      <!-- OTP Box -->
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <tr>
+                          <td style="text-align: center; padding: 30px 0;">
+                            <div style="display: inline-block; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px dashed #6366f1; border-radius: 12px; padding: 25px 50px;">
+                              <p style="margin: 0 0 8px; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">Your Verification Code</p>
+                              <p style="margin: 0; color: #6366f1; font-size: 42px; font-weight: 700; letter-spacing: 12px; font-family: 'Courier New', monospace;">${otp}</p>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                      
+                      <!-- Timer Warning -->
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <tr>
+                          <td style="text-align: center; padding: 20px 0;">
+                            <div style="display: inline-flex; align-items: center; background-color: #fef3c7; border-radius: 8px; padding: 12px 20px;">
+                              <span style="color: #d97706; font-size: 14px;">⏱️ This code expires in <strong>10 minutes</strong></span>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                      
+                      <p style="margin: 30px 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                        If you didn't create an account with Skill Barter, you can safely ignore this email.
+                      </p>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 16px 16px; border-top: 1px solid #e5e7eb;">
+                      <p style="margin: 0 0 10px; color: #9ca3af; font-size: 13px; text-align: center;">
+                        This is an automated message from Skill Barter. Please do not reply to this email.
+                      </p>
+                      <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
+                        © ${new Date().getFullYear()} Skill Barter. All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `,
     };
 
@@ -403,7 +470,6 @@ class AuthService {
 
     // Send email with professional design
     const mailOptions = {
-      from: process.env.EMAIL_USER,
       to: email,
       subject: "Password Reset Request - Skill Barter",
       html: `
@@ -560,7 +626,6 @@ class AuthService {
 
     // Send confirmation email
     const mailOptions = {
-      from: process.env.EMAIL_USER,
       to: email,
       subject: "Password Changed Successfully - Skill Barter",
       html: `
