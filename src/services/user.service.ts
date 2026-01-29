@@ -5,6 +5,8 @@ import ExchangeRequest, {
 } from "../models/exchangeRequest.model";
 import Session, { SessionStatus } from "../models/session.model";
 import Review from "../models/review.model";
+import SkillToTeach from "../models/skillToTeach.model";
+import SkillToLearn from "../models/skillToLearn.model";
 import { NotFoundError, BadRequestError } from "../utils/api.errors";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
@@ -20,6 +22,12 @@ class UserService {
     if (!user) {
       throw new NotFoundError("User not found");
     }
+
+    // Fetch skills to teach and learn in parallel
+    const [skillsToTeach, skillsToLearn] = await Promise.all([
+      SkillToTeach.find({ user: userId }).select("name difficulty -_id"),
+      SkillToLearn.find({ user: userId }).select("name difficulty -_id"),
+    ]);
 
     // Combine city and country into location
     const userData = user.toObject();
@@ -43,6 +51,14 @@ class UserService {
       weekly_availability: userData.weekly_availability,
       skills: userData.skills || [],
       interests: userData.interests || [],
+      skillsToTeach: skillsToTeach.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
+      skillsToLearn: skillsToLearn.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
       language: userData.language,
       timezone: userData.timezone,
       createdAt: userData.createdAt,
@@ -109,16 +125,57 @@ class UserService {
           : null;
     }
 
-    // Update user
+    // Extract skills to teach and learn from updateData
+    const { skillsToTeach, skillsToLearn, ...userUpdateData } = updateData;
+
+    // Update user basic data
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: updateData },
+      { $set: userUpdateData },
       { new: true, runValidators: true },
     ).select("-password -__v");
 
     if (!updatedUser) {
       throw new NotFoundError("User not found");
     }
+
+    // Handle skills to teach update
+    if (skillsToTeach !== undefined) {
+      // Delete existing skills to teach for this user
+      await SkillToTeach.deleteMany({ user: userId });
+
+      // Insert new skills to teach
+      if (skillsToTeach.length > 0) {
+        const skillsToTeachDocs = skillsToTeach.map((skill) => ({
+          name: skill.name.trim(),
+          difficulty: skill.difficulty,
+          user: userId,
+        }));
+        await SkillToTeach.insertMany(skillsToTeachDocs);
+      }
+    }
+
+    // Handle skills to learn update
+    if (skillsToLearn !== undefined) {
+      // Delete existing skills to learn for this user
+      await SkillToLearn.deleteMany({ user: userId });
+
+      // Insert new skills to learn
+      if (skillsToLearn.length > 0) {
+        const skillsToLearnDocs = skillsToLearn.map((skill) => ({
+          name: skill.name.trim(),
+          difficulty: skill.difficulty,
+          user: userId,
+        }));
+        await SkillToLearn.insertMany(skillsToLearnDocs);
+      }
+    }
+
+    // Fetch updated skills
+    const [updatedSkillsToTeach, updatedSkillsToLearn] = await Promise.all([
+      SkillToTeach.find({ user: userId }).select("name difficulty -_id"),
+      SkillToLearn.find({ user: userId }).select("name difficulty -_id"),
+    ]);
 
     // Combine city and country into location
     const userData = updatedUser.toObject();
@@ -142,6 +199,14 @@ class UserService {
       weekly_availability: userData.weekly_availability,
       skills: userData.skills || [],
       interests: userData.interests || [],
+      skillsToTeach: updatedSkillsToTeach.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
+      skillsToLearn: updatedSkillsToLearn.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
       language: userData.language,
       timezone: userData.timezone,
       createdAt: userData.createdAt,

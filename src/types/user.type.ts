@@ -1,3 +1,8 @@
+export interface SkillData {
+  name: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+}
+
 export interface UpdateUserData {
   first_name?: string;
   last_name?: string;
@@ -11,4 +16,6 @@ export interface UpdateUserData {
   interests?: string[];
   language?: string;
   timezone?: string;
+  skillsToTeach?: SkillData[];
+  skillsToLearn?: SkillData[];
 }

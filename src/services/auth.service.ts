@@ -272,13 +272,54 @@ class AuthService {
       email: user.email,
     });
 
+    // Fetch skills to teach and learn
+    const [skillsToTeach, skillsToLearn] = await Promise.all([
+      SkillToTeach.find({ user: user._id }).select("name difficulty -_id"),
+      SkillToLearn.find({ user: user._id }).select("name difficulty -_id"),
+    ]);
+
     // Return user without password
     const userObj = user.toObject();
+
+    // Combine city and country into location
+    const location =
+      userObj.city && userObj.country
+        ? `${userObj.city}, ${userObj.country}`
+        : userObj.city || userObj.country || null;
+
+    const userData = {
+      id: userObj._id,
+      first_name: userObj.first_name,
+      last_name: userObj.last_name,
+      username: userObj.username,
+      email: userObj.email,
+      about: userObj.about,
+      city: userObj.city,
+      country: userObj.country,
+      location,
+      website: userObj.website,
+      profile_picture: userObj.profile_picture,
+      weekly_availability: userObj.weekly_availability,
+      skills: userObj.skills || [],
+      interests: userObj.interests || [],
+      skillsToTeach: skillsToTeach.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
+      skillsToLearn: skillsToLearn.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
+      language: userObj.language,
+      timezone: userObj.timezone,
+      createdAt: userObj.createdAt,
+      updatedAt: userObj.updatedAt,
+    };
 
     return SuccessResponse({
       message: "User registered successfully",
       data: {
-        user: userObj as IUser,
+        user: userData,
         accessToken,
         refreshToken,
       },
@@ -308,13 +349,54 @@ class AuthService {
       email: user.email,
     });
 
+    // Fetch skills to teach and learn
+    const [skillsToTeach, skillsToLearn] = await Promise.all([
+      SkillToTeach.find({ user: user._id }).select("name difficulty -_id"),
+      SkillToLearn.find({ user: user._id }).select("name difficulty -_id"),
+    ]);
+
     // Return user without password
     const userObj = user.toObject();
+
+    // Combine city and country into location
+    const location =
+      userObj.city && userObj.country
+        ? `${userObj.city}, ${userObj.country}`
+        : userObj.city || userObj.country || null;
+
+    const userData = {
+      id: userObj._id,
+      first_name: userObj.first_name,
+      last_name: userObj.last_name,
+      username: userObj.username,
+      email: userObj.email,
+      about: userObj.about,
+      city: userObj.city,
+      country: userObj.country,
+      location,
+      website: userObj.website,
+      profile_picture: userObj.profile_picture,
+      weekly_availability: userObj.weekly_availability,
+      skills: userObj.skills || [],
+      interests: userObj.interests || [],
+      skillsToTeach: skillsToTeach.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
+      skillsToLearn: skillsToLearn.map((s) => ({
+        name: s.name,
+        difficulty: s.difficulty,
+      })),
+      language: userObj.language,
+      timezone: userObj.timezone,
+      createdAt: userObj.createdAt,
+      updatedAt: userObj.updatedAt,
+    };
 
     return SuccessResponse({
       message: "Login successful",
       data: {
-        user: userObj as IUser,
+        user: userData,
         accessToken,
         refreshToken,
       },

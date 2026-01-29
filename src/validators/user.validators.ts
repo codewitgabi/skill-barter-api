@@ -1,6 +1,8 @@
 import { validateRequest } from "../middlewares/validation.middleware";
 import { body } from "express-validator";
 
+const validDifficultyLevels = ["beginner", "intermediate", "advanced"];
+
 export const UpdateUserSchema = [
   body("first_name")
     .optional()
@@ -99,6 +101,50 @@ export const UpdateUserSchema = [
     .withMessage("Interest cannot be empty")
     .isLength({ min: 1, max: 100 })
     .withMessage("Each interest must be between 1 and 100 characters"),
+  body("skillsToTeach")
+    .optional()
+    .isArray()
+    .withMessage("Skills to teach must be an array")
+    .custom((skills: any[]) => {
+      if (skills.length > 50) {
+        throw new Error("Cannot have more than 50 skills to teach");
+      }
+      return true;
+    }),
+  body("skillsToTeach.*.name")
+    .trim()
+    .notEmpty()
+    .withMessage("Skill name is required")
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Skill name must be between 1 and 100 characters"),
+  body("skillsToTeach.*.difficulty")
+    .trim()
+    .notEmpty()
+    .withMessage("Difficulty level is required")
+    .isIn(validDifficultyLevels)
+    .withMessage("Difficulty must be one of: beginner, intermediate, advanced"),
+  body("skillsToLearn")
+    .optional()
+    .isArray()
+    .withMessage("Skills to learn must be an array")
+    .custom((skills: any[]) => {
+      if (skills.length > 50) {
+        throw new Error("Cannot have more than 50 skills to learn");
+      }
+      return true;
+    }),
+  body("skillsToLearn.*.name")
+    .trim()
+    .notEmpty()
+    .withMessage("Skill name is required")
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Skill name must be between 1 and 100 characters"),
+  body("skillsToLearn.*.difficulty")
+    .trim()
+    .notEmpty()
+    .withMessage("Difficulty level is required")
+    .isIn(validDifficultyLevels)
+    .withMessage("Difficulty must be one of: beginner, intermediate, advanced"),
   body("language")
     .optional()
     .trim()
