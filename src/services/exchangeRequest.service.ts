@@ -7,6 +7,8 @@ import { BadRequestError, NotFoundError } from "../utils/api.errors";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
 import sessionBookingService from "./sessionBooking.service";
+import notificationService from "./notification.service";
+import { NotificationType } from "../models/notification.model";
 
 interface CreateExchangeRequestData {
   receiverId: string;
@@ -114,6 +116,22 @@ class ExchangeRequestService {
       status: requestData.status,
       createdAt: requestData.createdAt,
     };
+
+    // Send notification to receiver
+    try {
+      await notificationService.sendNotification({
+        userId: data.receiverId,
+        type: NotificationType.EXCHANGE_REQUEST,
+        title: "New Exchange Request",
+        message: `${requesterData.first_name} ${requesterData.last_name} wants to exchange skills with you`,
+        data: {
+          exchangeRequestId: requestData._id.toString(),
+        },
+      });
+    } catch (error: any) {
+      // Log error but don't fail the request
+      console.error("Failed to send exchange request notification:", error.message);
+    }
 
     return SuccessResponse({
       message: "Exchange request created successfully",
@@ -288,6 +306,22 @@ class ExchangeRequestService {
       createdAt: requestData.createdAt,
     };
 
+    // Send notification to requester
+    try {
+      await notificationService.sendNotification({
+        userId: requesterData._id.toString(),
+        type: NotificationType.EXCHANGE_REQUEST,
+        title: "Exchange Request Accepted",
+        message: `${receiverData.first_name} ${receiverData.last_name} accepted your exchange request`,
+        data: {
+          exchangeRequestId: requestData._id.toString(),
+        },
+      });
+    } catch (error: any) {
+      // Log error but don't fail the request
+      console.error("Failed to send exchange request acceptance notification:", error.message);
+    }
+
     return SuccessResponse({
       message: "Exchange request accepted successfully",
       data: formattedRequest,
@@ -366,6 +400,22 @@ class ExchangeRequestService {
       status: requestData.status,
       createdAt: requestData.createdAt,
     };
+
+    // Send notification to requester
+    try {
+      await notificationService.sendNotification({
+        userId: requesterData._id.toString(),
+        type: NotificationType.EXCHANGE_REQUEST,
+        title: "Exchange Request Declined",
+        message: `${receiverData.first_name} ${receiverData.last_name} declined your exchange request`,
+        data: {
+          exchangeRequestId: requestData._id.toString(),
+        },
+      });
+    } catch (error: any) {
+      // Log error but don't fail the request
+      console.error("Failed to send exchange request decline notification:", error.message);
+    }
 
     return SuccessResponse({
       message: "Exchange request declined successfully",

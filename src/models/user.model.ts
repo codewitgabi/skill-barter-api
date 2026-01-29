@@ -15,6 +15,7 @@ export interface IUser extends Document {
   weekly_availability?: number;
   skills?: string[];
   interests?: string[];
+  fcmToken: string;
   language?: string;
   timezone?: string;
   deletedAt?: Date;
@@ -120,6 +121,10 @@ const userSchema = new Schema<IUser>(
         validator: (interests: string[]) => interests.length <= 50,
         message: "Cannot have more than 50 interests",
       },
+    },
+    fcmToken: {
+      type: String,
+      default: null,
     },
     language: {
       type: String,

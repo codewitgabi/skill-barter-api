@@ -109,5 +109,10 @@ export const UpdateUserSchema = [
     .trim()
     .matches(/^[A-Za-z_]+\/[A-Za-z_]+$/)
     .withMessage("Please provide a valid timezone (e.g., America/New_York)"),
+  body("fcmToken")
+    .optional()
+    .trim()
+    .isString()
+    .withMessage("FCM Token must be a string"),
   validateRequest,
 ];

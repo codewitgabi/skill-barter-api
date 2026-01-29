@@ -9,6 +9,8 @@ import ExchangeRequest, {
 import Session, { SessionType, SessionLocation } from "../models/session.model";
 import User from "../models/user.model";
 import googleMeetService from "./googleMeet.service";
+import notificationService from "./notification.service";
+import { NotificationType } from "../models/notification.model";
 import {
   BadRequestError,
   NotFoundError,
@@ -536,7 +538,53 @@ class SessionBookingService {
       exchangeRequest,
     );
 
-    await Session.insertMany(sessions);
+    const insertedSessions = await Session.insertMany(sessions);
+
+    // Send notifications for the first upcoming session to both instructor and learner
+    if (insertedSessions.length > 0) {
+      const firstSession = insertedSessions[0];
+      const instructorId = firstSession.instructor.toString();
+      const learnerId = firstSession.learner.toString();
+      const sessionDate = new Date(firstSession.scheduledDate);
+      const formattedDate = sessionDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      // Notify instructor
+      try {
+        await notificationService.sendNotification({
+          userId: instructorId,
+          type: NotificationType.SESSION_REMINDER,
+          title: "Session Scheduled",
+          message: `Your session for ${refreshedBooking.skill} is scheduled for ${formattedDate}`,
+          data: {
+            sessionId: firstSession._id.toString(),
+          },
+        });
+      } catch (error: any) {
+        console.error("Failed to send session notification to instructor:", error.message);
+      }
+
+      // Notify learner
+      try {
+        await notificationService.sendNotification({
+          userId: learnerId,
+          type: NotificationType.SESSION_REMINDER,
+          title: "Session Scheduled",
+          message: `Your session for ${refreshedBooking.skill} is scheduled for ${formattedDate}`,
+          data: {
+            sessionId: firstSession._id.toString(),
+          },
+        });
+      } catch (error: any) {
+        console.error("Failed to send session notification to learner:", error.message);
+      }
+    }
 
     return SuccessResponse({
       message: "Session booking accepted and sessions created successfully",
