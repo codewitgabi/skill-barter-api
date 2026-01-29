@@ -116,3 +116,17 @@ export const UpdateUserSchema = [
     .withMessage("FCM Token must be a string"),
   validateRequest,
 ];
+
+export const ChangePasswordSchema = [
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Current password is required"),
+  body("newPassword")
+    .isLength({ min: 8 })
+    .withMessage("New password must be at least 8 characters")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage(
+      "New password must contain at least one uppercase letter, one lowercase letter, and one number",
+    ),
+  validateRequest,
+];

@@ -702,6 +702,116 @@ class AuthService {
       httpStatus: StatusCodes.OK,
     });
   }
+
+  // Change password (for authenticated users)
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    // Find user with password
+    const user = await User.findById(userId).select("+password");
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    // Verify current password
+    const isPasswordValid = await argon2.verify(user.password, currentPassword);
+    if (!isPasswordValid) {
+      throw new BadRequestError("Current password is incorrect");
+    }
+
+    // Check if new password is same as current
+    const isSamePassword = await argon2.verify(user.password, newPassword);
+    if (isSamePassword) {
+      throw new BadRequestError(
+        "New password must be different from current password",
+      );
+    }
+
+    // Hash and update password
+    const hashedPassword = await argon2.hash(newPassword);
+    user.password = hashedPassword;
+    await user.save();
+
+    // Send confirmation email
+    const mailOptions = {
+      to: user.email,
+      subject: "Password Changed Successfully - Skill Barter",
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f7fa;">
+            <tr>
+              <td style="padding: 40px 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px 16px 0 0;">
+                      <div style="width: 64px; height: 64px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 32px;">✓</span>
+                      </div>
+                      <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Password Changed</h1>
+                    </td>
+                  </tr>
+                  
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px;">
+                      <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6;">
+                        Hi <strong>${user.first_name}</strong>,
+                      </p>
+                      <p style="margin: 0 0 25px; color: #6b7280; font-size: 15px; line-height: 1.6;">
+                        Your password has been changed successfully. You can continue using your account with your new password.
+                      </p>
+                      
+                      <!-- Security Notice -->
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <tr>
+                          <td style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 0 8px 8px 0; padding: 16px 20px;">
+                            <p style="margin: 0; color: #991b1b; font-size: 14px; font-weight: 600;">🔒 Security Notice</p>
+                            <p style="margin: 8px 0 0; color: #7f1d1d; font-size: 13px; line-height: 1.5;">
+                              If you did not make this change, please secure your account immediately by resetting your password and contact our support team.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 16px 16px; border-top: 1px solid #e5e7eb;">
+                      <p style="margin: 0 0 10px; color: #9ca3af; font-size: 13px; text-align: center;">
+                        This is an automated message from Skill Barter. Please do not reply to this email.
+                      </p>
+                      <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
+                        © ${new Date().getFullYear()} Skill Barter. All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return SuccessResponse({
+      message: "Password changed successfully",
+      data: null,
+      httpStatus: StatusCodes.OK,
+    });
+  }
 }
 
 const authService = new AuthService();
