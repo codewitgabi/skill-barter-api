@@ -1,4 +1,7 @@
-import { NotificationType, NotificationStatus } from "../models/notification.model";
+import {
+  NotificationType,
+  NotificationStatus,
+} from "../models/notification.model";
 import User from "../models/user.model";
 import NotificationSettings from "../models/notificationSettings.model";
 import { FRONTEND_URL, EMAIL_USER } from "../utils/constants";
@@ -27,7 +30,8 @@ interface NotificationTemplate {
 class NotificationService {
   private getActionUrlPattern(type: NotificationType): string {
     const urlPatterns: Record<NotificationType, string> = {
-      [NotificationType.EXCHANGE_REQUEST]: "/@me/exchange-requests/:exchangeRequestId",
+      [NotificationType.EXCHANGE_REQUEST]:
+        "/@me/exchange-requests/:exchangeRequestId",
       [NotificationType.SESSION_REMINDER]: "/@me/sessions/:sessionId",
       [NotificationType.MESSAGE]: "/@me/chats/:conversationId",
       [NotificationType.REVIEW_AND_RATING]: "/@me/reviews",

@@ -128,3 +128,42 @@ export const LogoutSchema = [
     .withMessage("Refresh token cannot be empty if provided"),
   validateRequest,
 ];
+
+export const ForgotPasswordSchema = [
+  body("email")
+    .isEmail()
+    .withMessage("Please provide a valid email address")
+    .normalizeEmail()
+    .toLowerCase(),
+  validateRequest,
+];
+
+export const VerifyPasswordResetOTPSchema = [
+  body("email")
+    .isEmail()
+    .withMessage("Please provide a valid email address")
+    .normalizeEmail()
+    .toLowerCase(),
+  body("otp")
+    .isLength({ min: 5, max: 5 })
+    .withMessage("OTP must be 5 digits")
+    .isNumeric()
+    .withMessage("OTP must contain only numbers"),
+  validateRequest,
+];
+
+export const ResetPasswordSchema = [
+  body("email")
+    .isEmail()
+    .withMessage("Please provide a valid email address")
+    .normalizeEmail()
+    .toLowerCase(),
+  body("password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage(
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+    ),
+  validateRequest,
+];

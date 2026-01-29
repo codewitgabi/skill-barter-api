@@ -52,3 +52,31 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
 
   return res.status(response.httpStatus).json(response);
 });
+
+export const forgotPassword = catchAsync(
+  async (req: Request, res: Response) => {
+    const response = await authService.forgotPassword(req.body.email);
+
+    return res.status(response.httpStatus).json(response);
+  },
+);
+
+export const verifyPasswordResetOTP = catchAsync(
+  async (req: Request, res: Response) => {
+    const response = await authService.verifyPasswordResetOTP(
+      req.body.email,
+      req.body.otp,
+    );
+
+    return res.status(response.httpStatus).json(response);
+  },
+);
+
+export const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const response = await authService.resetPassword(
+    req.body.email,
+    req.body.password,
+  );
+
+  return res.status(response.httpStatus).json(response);
+});

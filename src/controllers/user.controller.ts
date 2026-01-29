@@ -39,16 +39,14 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
   return res.status(response.httpStatus).json(response);
 });
 
-export const getQuickStats = catchAsync(
-  async (req: Request, res: Response) => {
-    const userId = req.user?.userId;
+export const getQuickStats = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
 
-    if (!userId) {
-      throw new UnauthorizedError("Unauthorized");
-    }
+  if (!userId) {
+    throw new UnauthorizedError("Unauthorized");
+  }
 
-    const response = await userService.getQuickStats(userId);
+  const response = await userService.getQuickStats(userId);
 
-    return res.status(response.httpStatus).json(response);
-  },
-);
+  return res.status(response.httpStatus).json(response);
+});

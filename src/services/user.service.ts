@@ -189,13 +189,7 @@ class UserService {
     }
 
     // Calculate all stats in parallel
-    const [
-      exchanges,
-      active,
-      ratingData,
-      learned,
-      taught,
-    ] = await Promise.all([
+    const [exchanges, active, ratingData, learned, taught] = await Promise.all([
       // Exchanges: Total exchange requests where user is requester or receiver
       ExchangeRequest.countDocuments({
         $or: [{ requester: userId }, { receiver: userId }],

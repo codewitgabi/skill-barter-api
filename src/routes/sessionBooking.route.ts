@@ -24,10 +24,6 @@ router.patch(
   UpdateSessionBookingSchema,
   updateSessionBooking,
 );
-router.patch(
-  "/:id/accept",
-  SessionBookingIdSchema,
-  acceptSessionBooking,
-);
+router.patch("/:id/accept", SessionBookingIdSchema, acceptSessionBooking);
 
 export default router;

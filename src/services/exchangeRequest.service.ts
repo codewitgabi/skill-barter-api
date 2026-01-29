@@ -130,7 +130,10 @@ class ExchangeRequestService {
       });
     } catch (error: any) {
       // Log error but don't fail the request
-      console.error("Failed to send exchange request notification:", error.message);
+      console.error(
+        "Failed to send exchange request notification:",
+        error.message,
+      );
     }
 
     return SuccessResponse({
@@ -319,7 +322,10 @@ class ExchangeRequestService {
       });
     } catch (error: any) {
       // Log error but don't fail the request
-      console.error("Failed to send exchange request acceptance notification:", error.message);
+      console.error(
+        "Failed to send exchange request acceptance notification:",
+        error.message,
+      );
     }
 
     return SuccessResponse({
@@ -414,7 +420,10 @@ class ExchangeRequestService {
       });
     } catch (error: any) {
       // Log error but don't fail the request
-      console.error("Failed to send exchange request decline notification:", error.message);
+      console.error(
+        "Failed to send exchange request decline notification:",
+        error.message,
+      );
     }
 
     return SuccessResponse({

@@ -461,16 +461,15 @@ class SessionBookingService {
   }
 
   async acceptSessionBooking(bookingId: string, userId: string) {
-    const booking = await SessionBooking.findById(bookingId).populate(
-      "exchangeRequest",
-    );
+    const booking =
+      await SessionBooking.findById(bookingId).populate("exchangeRequest");
 
     if (!booking) {
       throw new NotFoundError("Session booking not found");
     }
 
     const bookingData = booking.toObject ? booking.toObject() : booking;
-    
+
     if (
       !bookingData ||
       !bookingData.daysPerWeek ||
@@ -567,7 +566,10 @@ class SessionBookingService {
           },
         });
       } catch (error: any) {
-        console.error("Failed to send session notification to instructor:", error.message);
+        console.error(
+          "Failed to send session notification to instructor:",
+          error.message,
+        );
       }
 
       // Notify learner
@@ -582,7 +584,10 @@ class SessionBookingService {
           },
         });
       } catch (error: any) {
-        console.error("Failed to send session notification to learner:", error.message);
+        console.error(
+          "Failed to send session notification to learner:",
+          error.message,
+        );
       }
     }
 
@@ -614,13 +619,13 @@ class SessionBookingService {
 
     const sessions: any[] = [];
     const { daysOfWeek, totalSessions, startTime, duration, skill } = booking;
-    
+
     if (!booking.proposer || !booking.recipient) {
       throw new BadRequestError(
         "Session booking is missing proposer or recipient information",
       );
     }
-    
+
     const proposerId = booking.proposer.toString();
     const recipientId = booking.recipient.toString();
 
@@ -631,9 +636,7 @@ class SessionBookingService {
     ]);
 
     if (!instructor || !learner) {
-      throw new BadRequestError(
-        "Instructor or learner not found",
-      );
+      throw new BadRequestError("Instructor or learner not found");
     }
 
     const startDate = this.getStartDate(daysOfWeek);
@@ -688,7 +691,6 @@ class SessionBookingService {
 
     return sessions;
   }
-
 
   private getStartDate(daysOfWeek: DayOfWeek[]): Date {
     const today = new Date();

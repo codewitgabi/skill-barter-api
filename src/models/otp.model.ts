@@ -1,10 +1,16 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export enum OTPPurpose {
+  EMAIL_VERIFICATION = "email_verification",
+  PASSWORD_RESET = "password_reset",
+}
+
 export interface IOTP extends Document {
   email: string;
   otp: string;
   expiresAt: Date;
   verified: boolean;
+  purpose: OTPPurpose;
   createdAt: Date;
 }
 
@@ -29,6 +35,11 @@ const otpSchema = new Schema<IOTP>(
       type: Boolean,
       default: false,
     },
+    purpose: {
+      type: String,
+      enum: Object.values(OTPPurpose),
+      default: OTPPurpose.EMAIL_VERIFICATION,
+    },
   },
   {
     timestamps: true,
@@ -36,7 +47,7 @@ const otpSchema = new Schema<IOTP>(
 );
 
 // Indexes
-otpSchema.index({ email: 1, verified: 1 });
+otpSchema.index({ email: 1, verified: 1, purpose: 1 });
 
 const OTP: Model<IOTP> = mongoose.model<IOTP>("OTP", otpSchema);
 

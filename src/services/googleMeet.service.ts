@@ -45,10 +45,10 @@ class GoogleMeetService {
           credentials: credentials,
           scopes: SCOPES,
         });
-        authClient = await googleAuth.getClient() as any;
+        authClient = (await googleAuth.getClient()) as any;
       } else {
         const creds = credentials.installed || credentials.web || credentials;
-        
+
         const oauthClient = new OAuth2Client(
           creds.client_id,
           creds.client_secret,
@@ -99,10 +99,10 @@ class GoogleMeetService {
           credentials: credentials,
           scopes: SCOPES,
         });
-        authClient = await googleAuth.getClient() as any;
+        authClient = (await googleAuth.getClient()) as any;
       } else {
         const creds = credentials.installed || credentials.web || credentials;
-        
+
         const oauthClient = new OAuth2Client(
           creds.client_id,
           creds.client_secret,
@@ -196,7 +196,8 @@ class GoogleMeetService {
 
       const event = {
         summary,
-        description: description || `Scheduled session at ${startTime.toLocaleString()}`,
+        description:
+          description || `Scheduled session at ${startTime.toLocaleString()}`,
         start: {
           dateTime: startTime.toISOString(),
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
