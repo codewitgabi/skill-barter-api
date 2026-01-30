@@ -1,4 +1,9 @@
+import mongoose from "mongoose";
 import Session, { SessionStatus } from "../models/session.model";
+import SessionBooking, {
+  SessionBookingStatus,
+} from "../models/sessionBooking.model";
+import SkillToLearn from "../models/skillToLearn.model";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
 import {
@@ -200,6 +205,94 @@ class SessionService {
     return SuccessResponse({
       message: "Session marked as completed successfully",
       data: null,
+      httpStatus: StatusCodes.OK,
+    });
+  }
+
+  async getLearningProgress(userId: string) {
+    // Find all accepted session bookings where the user is the recipient (learner)
+    const sessionBookings = await SessionBooking.find({
+      recipient: userId,
+      status: SessionBookingStatus.ACCEPTED,
+    }).select("_id skill totalSessions");
+
+    if (sessionBookings.length === 0) {
+      return SuccessResponse({
+        message: "Learning progress retrieved successfully",
+        data: [],
+        httpStatus: StatusCodes.OK,
+      });
+    }
+
+    // Get user's skills to learn for difficulty levels
+    const skillsToLearn = await SkillToLearn.find({ user: userId }).select(
+      "name difficulty",
+    );
+
+    // Create a map for quick lookup of difficulty by skill name (case-insensitive)
+    const skillDifficultyMap = new Map<string, string>();
+    skillsToLearn.forEach((skill) => {
+      skillDifficultyMap.set(skill.name.toLowerCase(), skill.difficulty);
+    });
+
+    // Get session booking IDs
+    const bookingIds = sessionBookings.map((booking) => booking._id);
+
+    // Convert userId to ObjectId for aggregation query
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Count completed sessions for each booking
+    const completedSessionCounts = await Session.aggregate([
+      {
+        $match: {
+          sessionBooking: { $in: bookingIds },
+          learner: userObjectId,
+          status: SessionStatus.COMPLETED,
+        },
+      },
+      {
+        $group: {
+          _id: "$sessionBooking",
+          completedCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Create a map of booking ID to completed count
+    const completedCountMap = new Map<string, number>();
+    completedSessionCounts.forEach((item) => {
+      completedCountMap.set(item._id.toString(), item.completedCount);
+    });
+
+    // Build the learning progress response
+    const learningProgress = sessionBookings.map((booking) => {
+      const bookingId = booking._id.toString();
+      const completedSessions = completedCountMap.get(bookingId) || 0;
+      const totalSessions = booking.totalSessions;
+      const percentComplete =
+        totalSessions > 0
+          ? Math.round((completedSessions / totalSessions) * 100)
+          : 0;
+
+      // Try to find difficulty level from user's skills to learn
+      const difficulty =
+        skillDifficultyMap.get(booking.skill.toLowerCase()) || null;
+
+      return {
+        skill: booking.skill,
+        difficulty,
+        completedSessions,
+        totalSessions,
+        percentComplete,
+      };
+    });
+
+    // Sort by percentage complete (descending) so most progressed skills appear first
+    learningProgress.sort((a, b) => b.percentComplete - a.percentComplete);
+
+    return SuccessResponse({
+      message: "Learning progress retrieved successfully",
+      data: learningProgress,
       httpStatus: StatusCodes.OK,
     });
   }

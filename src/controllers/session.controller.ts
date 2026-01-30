@@ -37,3 +37,17 @@ export const completeSession = catchAsync(
     return res.status(response.httpStatus).json(response);
   },
 );
+
+export const getLearningProgress = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const response = await sessionService.getLearningProgress(userId);
+
+    return res.status(response.httpStatus).json(response);
+  },
+);

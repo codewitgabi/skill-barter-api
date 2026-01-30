@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { getSessions, completeSession } from "../controllers/session.controller";
+import {
+  getSessions,
+  completeSession,
+  getLearningProgress,
+} from "../controllers/session.controller";
 import {
   GetSessionsSchema,
   SessionIdParamSchema,
@@ -11,6 +15,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get("/", GetSessionsSchema, getSessions);
+router.get("/learning-progress", getLearningProgress);
 router.post("/:sessionId/complete", SessionIdParamSchema, completeSession);
 
 export default router;
