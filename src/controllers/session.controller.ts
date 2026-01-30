@@ -21,3 +21,19 @@ export const getSessions = catchAsync(async (req: Request, res: Response) => {
 
   return res.status(response.httpStatus).json(response);
 });
+
+export const completeSession = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const sessionId = req.params.sessionId as string;
+
+    const response = await sessionService.completeSession(sessionId, userId);
+
+    return res.status(response.httpStatus).json(response);
+  },
+);

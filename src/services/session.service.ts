@@ -1,6 +1,11 @@
 import Session, { SessionStatus } from "../models/session.model";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
+import {
+  NotFoundError,
+  ForbiddenError,
+  BadRequestError,
+} from "../utils/api.errors";
 
 interface GetSessionsQuery {
   page?: number;
@@ -146,6 +151,57 @@ class SessionService {
     });
 
     return [...upcoming, ...completed];
+  }
+
+  async completeSession(sessionId: string, userId: string) {
+    // Find the session
+    const session = await Session.findById(sessionId);
+
+    if (!session) {
+      throw new NotFoundError("Session not found");
+    }
+
+    const instructorId = session.instructor.toString();
+    const learnerId = session.learner.toString();
+
+    // Verify user is either instructor or learner
+    if (instructorId !== userId && learnerId !== userId) {
+      throw new ForbiddenError(
+        "You are not authorized to complete this session",
+      );
+    }
+
+    // Check if session is already completed
+    if (session.status === SessionStatus.COMPLETED) {
+      throw new BadRequestError("Session is already marked as completed");
+    }
+
+    // Check if the session time has passed (scheduled time + duration)
+    const now = new Date();
+    const scheduledDate = new Date(session.scheduledDate);
+    const sessionEndTime = new Date(
+      scheduledDate.getTime() + session.duration * 60 * 1000,
+    );
+
+    if (now < sessionEndTime) {
+      const remainingMinutes = Math.ceil(
+        (sessionEndTime.getTime() - now.getTime()) / (60 * 1000),
+      );
+      throw new BadRequestError(
+        `Session cannot be marked as completed yet. The session will end in approximately ${remainingMinutes} minute${remainingMinutes > 1 ? "s" : ""}.`,
+      );
+    }
+
+    // Update session status to completed
+    session.status = SessionStatus.COMPLETED;
+    session.completedAt = now;
+    await session.save();
+
+    return SuccessResponse({
+      message: "Session marked as completed successfully",
+      data: null,
+      httpStatus: StatusCodes.OK,
+    });
   }
 }
 

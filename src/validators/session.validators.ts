@@ -1,5 +1,5 @@
 import { validateRequest } from "../middlewares/validation.middleware";
-import { query } from "express-validator";
+import { query, param } from "express-validator";
 import { SessionStatus } from "../models/session.model";
 
 export const GetSessionsSchema = [
@@ -19,5 +19,14 @@ export const GetSessionsSchema = [
     .withMessage(
       `Status must be one of: ${Object.values(SessionStatus).join(", ")}`,
     ),
+  validateRequest,
+];
+
+export const SessionIdParamSchema = [
+  param("sessionId")
+    .notEmpty()
+    .withMessage("Session ID is required")
+    .isMongoId()
+    .withMessage("Invalid session ID format"),
   validateRequest,
 ];
