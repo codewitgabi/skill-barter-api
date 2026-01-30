@@ -23,10 +23,15 @@ import statsRoutes from "./routes/stats.route";
 
 const app: Express = express();
 
+// Trust proxy - required when behind reverse proxy (Vercel, AWS, nginx, etc.)
+// This ensures express-rate-limit correctly identifies users by their real IP
+app.set("trust proxy", 1);
+
 const corsOrigin = [
   "http://localhost:3000",
   "https://localhost:3000",
   "http://localhost:3001",
+  "https://skill-barter-connect.vercel.app"
 ];
 
 app.use(
