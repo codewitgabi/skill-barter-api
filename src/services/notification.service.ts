@@ -30,20 +30,19 @@ interface NotificationTemplate {
 class NotificationService {
   private getActionUrlPattern(type: NotificationType): string {
     const urlPatterns: Record<NotificationType, string> = {
-      [NotificationType.EXCHANGE_REQUEST]:
-        "/@me/exchange-requests/:exchangeRequestId",
-      [NotificationType.SESSION_REMINDER]: "/@me/sessions/:sessionId",
-      [NotificationType.MESSAGE]: "/@me/chats/:conversationId",
-      [NotificationType.REVIEW_AND_RATING]: "/@me/reviews",
+      [NotificationType.EXCHANGE_REQUEST]: "/@me/exchange-requests",
+      [NotificationType.SESSION_REMINDER]: "/@me/sessions",
+      [NotificationType.MESSAGE]: "/@me/chats",
+      [NotificationType.REVIEW_AND_RATING]: "/users/:userId/profile",
       [NotificationType.ACHIEVEMENT]: "/profile/achievements",
-      [NotificationType.SECURITY_ALERT]: "/me/settings/security",
+      [NotificationType.SECURITY_ALERT]: "/me/settings/password",
     };
     return urlPatterns[type];
   }
 
   private generateActionUrl(
     type: NotificationType,
-    data?: Record<string, any>,
+    data?: Record<string, any>
   ): string | undefined {
     const pattern = this.getActionUrlPattern(type);
     if (!pattern) {
@@ -95,7 +94,7 @@ class NotificationService {
   private async checkNotificationEnabled(
     userId: string,
     type: NotificationType,
-    channel: "email" | "push" | "inApp",
+    channel: "email" | "push" | "inApp"
   ): Promise<boolean> {
     const settings = await NotificationSettings.findOne({ user: userId });
     if (!settings) {
@@ -109,7 +108,7 @@ class NotificationService {
   private async sendEmailNotification(
     email: string,
     subject: string,
-    html: string,
+    html: string
   ): Promise<void> {
     try {
       const mailOptions = {
@@ -122,7 +121,7 @@ class NotificationService {
       sysLogger.info(`Email notification sent to ${email}`);
     } catch (error: any) {
       sysLogger.error(
-        `Failed to send email notification to ${email}: ${error.message}`,
+        `Failed to send email notification to ${email}: ${error.message}`
       );
       // Don't throw - we don't want email failures to break the flow
     }
@@ -133,12 +132,12 @@ class NotificationService {
     userId: string,
     title: string,
     body: string,
-    data?: Record<string, any>,
+    data?: Record<string, any>
   ): Promise<void> {
     try {
       if (!fcmToken) {
         sysLogger.info(
-          `No FCM token found for user ${userId}, skipping push notification`,
+          `No FCM token found for user ${userId}, skipping push notification`
         );
         return;
       }
@@ -178,7 +177,7 @@ class NotificationService {
 
       const response = await messaging.send(message);
       sysLogger.info(
-        `Push notification sent successfully to user ${userId}: ${response}`,
+        `Push notification sent successfully to user ${userId}: ${response}`
       );
     } catch (error: any) {
       // Handle invalid token - could be expired or unregistered
@@ -187,13 +186,13 @@ class NotificationService {
         error.code === "messaging/registration-token-not-registered"
       ) {
         sysLogger.warn(
-          `Invalid FCM token for user ${userId}, token may be expired`,
+          `Invalid FCM token for user ${userId}, token may be expired`
         );
         // Optionally: Clear the invalid token from user record
         await User.findByIdAndUpdate(userId, { $set: { fcmToken: null } });
       } else {
         sysLogger.error(
-          `Failed to send push notification to user ${userId}: ${error.message}`,
+          `Failed to send push notification to user ${userId}: ${error.message}`
         );
       }
       // Don't throw - we don't want push failures to break the flow
@@ -206,7 +205,7 @@ class NotificationService {
     title: string,
     message: string,
     actionUrl?: string,
-    data?: Record<string, any>,
+    data?: Record<string, any>
   ): Promise<void> {
     try {
       const notificationsRef = db.collection("notifications");
@@ -226,11 +225,11 @@ class NotificationService {
 
       await notificationsRef.add(notificationData);
       sysLogger.info(
-        `In-app notification created in Firestore for user ${userId}`,
+        `In-app notification created in Firestore for user ${userId}`
       );
     } catch (error: any) {
       sysLogger.error(
-        `Failed to create in-app notification in Firestore: ${error.message}`,
+        `Failed to create in-app notification in Firestore: ${error.message}`
       );
       // Don't throw - we don't want Firestore failures to break the flow
     }
@@ -238,7 +237,7 @@ class NotificationService {
 
   async sendNotification(
     data: CreateNotificationData,
-    template?: NotificationTemplate,
+    template?: NotificationTemplate
   ): Promise<void> {
     // Verify user exists
     const user = await User.findById(data.userId);
@@ -271,8 +270,8 @@ class NotificationService {
           data.title,
           data.message,
           actionUrl,
-          data.data,
-        ),
+          data.data
+        )
       );
     }
 
@@ -282,8 +281,8 @@ class NotificationService {
         this.sendEmailNotification(
           user.email,
           template.emailSubject,
-          template.emailHtml,
-        ),
+          template.emailHtml
+        )
       );
     }
 
@@ -291,14 +290,18 @@ class NotificationService {
     if (pushEnabled && user.fcmToken) {
       const pushTitle = template?.pushTitle || data.title;
       const pushBody = template?.pushBody || data.message;
+      const pushData = {
+        ...(template?.pushData || data.data || {}),
+        actionUrl: actionUrl || "",
+      };
       promises.push(
         this.sendPushNotification(
           user.fcmToken,
           data.userId,
           pushTitle,
           pushBody,
-          template?.pushData || data.data,
-        ),
+          pushData
+        )
       );
     }
 
@@ -311,7 +314,7 @@ class NotificationService {
   // Keep the old method name for backward compatibility, but make it call sendNotification
   async createNotification(
     data: CreateNotificationData,
-    template?: NotificationTemplate,
+    template?: NotificationTemplate
   ): Promise<void> {
     return this.sendNotification(data, template);
   }
