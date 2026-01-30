@@ -18,6 +18,7 @@ import {
 } from "../utils/api.errors";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
+import { FRONTEND_URL } from "../utils/constants";
 
 interface GetSessionBookingsQuery {
   page?: number;
@@ -553,18 +554,152 @@ class SessionBookingService {
         hour: "2-digit",
         minute: "2-digit",
       });
+      const sessionUrl = `${FRONTEND_URL}/@me/sessions/${firstSession._id.toString()}`;
+      const skillName = refreshedBooking.skill;
+      const totalSessionsCount = insertedSessions.length;
+
+      // Fetch instructor and learner details for personalized notifications
+      const [instructorUser, learnerUser] = await Promise.all([
+        User.findById(instructorId).select("first_name last_name"),
+        User.findById(learnerId).select("first_name last_name"),
+      ]);
+
+      const instructorName = instructorUser
+        ? `${instructorUser.first_name} ${instructorUser.last_name}`
+        : "Instructor";
+      const learnerName = learnerUser
+        ? `${learnerUser.first_name} ${learnerUser.last_name}`
+        : "Learner";
 
       // Notify instructor
       try {
-        await notificationService.sendNotification({
-          userId: instructorId,
-          type: NotificationType.SESSION_REMINDER,
-          title: "Session Scheduled",
-          message: `Your session for ${refreshedBooking.skill} is scheduled for ${formattedDate}`,
-          data: {
-            sessionId: firstSession._id.toString(),
+        await notificationService.sendNotification(
+          {
+            userId: instructorId,
+            type: NotificationType.SESSION_REMINDER,
+            title: "Session Scheduled",
+            message: `Your session for ${skillName} is scheduled for ${formattedDate}`,
+            data: {
+              sessionId: firstSession._id.toString(),
+            },
           },
-        });
+          {
+            emailSubject: `Your Teaching Session is Scheduled - Skill Barter`,
+            emailHtml: `
+              <!DOCTYPE html>
+              <html lang="en">
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              </head>
+              <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f7fa;">
+                  <tr>
+                    <td style="padding: 40px 20px;">
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
+                        <!-- Header -->
+                        <tr>
+                          <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px 16px 0 0;">
+                            <div style="width: 64px; height: 64px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 16px; line-height: 64px;">
+                              <span style="font-size: 32px;">📅</span>
+                            </div>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Sessions Scheduled!</h1>
+                          </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                          <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6;">
+                              Hi <strong>${instructorUser?.first_name || "there"}</strong>,
+                            </p>
+                            <p style="margin: 0 0 25px; color: #6b7280; font-size: 15px; line-height: 1.6;">
+                              Great news! Your teaching sessions have been scheduled. <strong>${learnerName}</strong> is excited to learn <strong>${skillName}</strong> from you.
+                            </p>
+                            
+                            <!-- Session Details Box -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                              <tr>
+                                <td style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px;">
+                                  <p style="margin: 0 0 16px; color: #374151; font-size: 14px; font-weight: 600;">Session Details:</p>
+                                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Skill:</span>
+                                        <p style="margin: 4px 0 0; color: #059669; font-size: 16px; font-weight: 600;">${skillName}</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Your Role:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">Instructor</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Student:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">${learnerName}</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">First Session:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">${formattedDate}</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Total Sessions:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">${totalSessionsCount} session${totalSessionsCount > 1 ? "s" : ""}</p>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                              <tr>
+                                <td style="padding: 30px 0; text-align: center;">
+                                  <a href="${sessionUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 14px 32px; border-radius: 8px;">View Session Details</a>
+                                </td>
+                              </tr>
+                            </table>
+                            
+                            <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                              Make sure to prepare your materials and be ready to share your knowledge. Happy teaching!
+                            </p>
+                          </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                          <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 16px 16px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 10px; color: #9ca3af; font-size: 13px; text-align: center;">
+                              This is an automated message from Skill Barter.
+                            </p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
+                              © ${new Date().getFullYear()} Skill Barter. All rights reserved.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </body>
+              </html>
+            `,
+            pushTitle: "Teaching Session Scheduled! 📅",
+            pushBody: `Your ${skillName} session with ${learnerName} starts ${formattedDate}`,
+            pushData: {
+              type: "session_scheduled",
+              sessionId: firstSession._id.toString(),
+              role: "instructor",
+            },
+          },
+        );
       } catch (error: any) {
         console.error(
           "Failed to send session notification to instructor:",
@@ -574,15 +709,133 @@ class SessionBookingService {
 
       // Notify learner
       try {
-        await notificationService.sendNotification({
-          userId: learnerId,
-          type: NotificationType.SESSION_REMINDER,
-          title: "Session Scheduled",
-          message: `Your session for ${refreshedBooking.skill} is scheduled for ${formattedDate}`,
-          data: {
-            sessionId: firstSession._id.toString(),
+        await notificationService.sendNotification(
+          {
+            userId: learnerId,
+            type: NotificationType.SESSION_REMINDER,
+            title: "Session Scheduled",
+            message: `Your session for ${skillName} is scheduled for ${formattedDate}`,
+            data: {
+              sessionId: firstSession._id.toString(),
+            },
           },
-        });
+          {
+            emailSubject: `Your Learning Session is Scheduled - Skill Barter`,
+            emailHtml: `
+              <!DOCTYPE html>
+              <html lang="en">
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              </head>
+              <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f7fa;">
+                  <tr>
+                    <td style="padding: 40px 20px;">
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);">
+                        <!-- Header -->
+                        <tr>
+                          <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px 16px 0 0;">
+                            <div style="width: 64px; height: 64px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 16px; line-height: 64px;">
+                              <span style="font-size: 32px;">🎓</span>
+                            </div>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Sessions Scheduled!</h1>
+                          </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                          <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6;">
+                              Hi <strong>${learnerUser?.first_name || "there"}</strong>,
+                            </p>
+                            <p style="margin: 0 0 25px; color: #6b7280; font-size: 15px; line-height: 1.6;">
+                              Exciting news! Your learning sessions have been scheduled. Get ready to learn <strong>${skillName}</strong> from <strong>${instructorName}</strong>.
+                            </p>
+                            
+                            <!-- Session Details Box -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                              <tr>
+                                <td style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; padding: 24px;">
+                                  <p style="margin: 0 0 16px; color: #374151; font-size: 14px; font-weight: 600;">Session Details:</p>
+                                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Skill:</span>
+                                        <p style="margin: 4px 0 0; color: #6366f1; font-size: 16px; font-weight: 600;">${skillName}</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Your Role:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">Learner</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Instructor:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">${instructorName}</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">First Session:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">${formattedDate}</p>
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td style="padding: 8px 0;">
+                                        <span style="color: #6b7280; font-size: 13px;">Total Sessions:</span>
+                                        <p style="margin: 4px 0 0; color: #374151; font-size: 16px; font-weight: 600;">${totalSessionsCount} session${totalSessionsCount > 1 ? "s" : ""}</p>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                              <tr>
+                                <td style="padding: 30px 0; text-align: center;">
+                                  <a href="${sessionUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 14px 32px; border-radius: 8px;">View Session Details</a>
+                                </td>
+                              </tr>
+                            </table>
+                            
+                            <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                              Come prepared with questions and an open mind. Happy learning!
+                            </p>
+                          </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                          <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 16px 16px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 10px; color: #9ca3af; font-size: 13px; text-align: center;">
+                              This is an automated message from Skill Barter.
+                            </p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
+                              © ${new Date().getFullYear()} Skill Barter. All rights reserved.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </body>
+              </html>
+            `,
+            pushTitle: "Learning Session Scheduled! 🎓",
+            pushBody: `Your ${skillName} session with ${instructorName} starts ${formattedDate}`,
+            pushData: {
+              type: "session_scheduled",
+              sessionId: firstSession._id.toString(),
+              role: "learner",
+            },
+          },
+        );
       } catch (error: any) {
         console.error(
           "Failed to send session notification to learner:",
