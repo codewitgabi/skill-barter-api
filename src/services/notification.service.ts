@@ -74,7 +74,7 @@ class NotificationService {
 
     // Prepend frontend URL if it's a relative path
     if (url.startsWith("/")) {
-      return `${FRONTEND_URL}${url}`;
+      return url;
     }
 
     return url;
