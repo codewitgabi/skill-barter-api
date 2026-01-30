@@ -6,6 +6,7 @@ import Review from "../models/review.model";
 import ExchangeRequest from "../models/exchangeRequest.model";
 import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
+import { BadRequestError } from "../utils/api.errors";
 
 interface GetConnectionsQuery {
   page?: number;
@@ -21,208 +22,233 @@ class ConnectionService {
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
 
-    // Build filter for users
-    const filter: any = {
-      deletedAt: null,
-    };
+    // Current user is required for matching
+    if (!currentUserId) {
+      throw new BadRequestError(
+        "Authentication required to find skill matches",
+      );
+    }
 
-    // Collect excluded user IDs (current user + users with exchange requests)
-    const excludedUserIds = new Set<string>();
-    if (currentUserId) {
-      excludedUserIds.add(currentUserId);
+    const currentUserObjectId = new mongoose.Types.ObjectId(currentUserId);
 
-      // Get users who have exchange requests with current user
-      const exchangeRequests = await ExchangeRequest.find({
-        $or: [{ requester: currentUserId }, { receiver: currentUserId }],
-      }).select("requester receiver");
+    // Get current user's skills to teach and learn
+    const [currentUserTeachSkills, currentUserLearnSkills] = await Promise.all([
+      SkillToTeach.find({ user: currentUserId }).select("name"),
+      SkillToLearn.find({ user: currentUserId }).select("name"),
+    ]);
 
-      exchangeRequests.forEach((request) => {
-        const requesterId = request.requester.toString();
-        const receiverId = request.receiver.toString();
-        if (requesterId !== currentUserId) {
-          excludedUserIds.add(requesterId);
-        }
-        if (receiverId !== currentUserId) {
-          excludedUserIds.add(receiverId);
-        }
+    const currentUserTeachSkillNames = currentUserTeachSkills.map((s) =>
+      s.name.toLowerCase(),
+    );
+    const currentUserLearnSkillNames = currentUserLearnSkills.map((s) =>
+      s.name.toLowerCase(),
+    );
+
+    // If current user has no skills, return empty
+    if (
+      currentUserTeachSkillNames.length === 0 ||
+      currentUserLearnSkillNames.length === 0
+    ) {
+      return SuccessResponse({
+        message: "Connections retrieved successfully",
+        data: {
+          connections: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
+        },
+        httpStatus: StatusCodes.OK,
       });
     }
 
-    // Build search conditions
-    const searchConditions: any[] = [];
-    const locationConditions: any[] = [];
+    // Get users who have exchange requests with current user (to exclude)
+    const exchangeRequests = await ExchangeRequest.find({
+      $or: [{ requester: currentUserId }, { receiver: currentUserId }],
+    }).select("requester receiver");
 
-    // Search by name or username
+    const excludedUserIds = new Set<string>([currentUserId]);
+    exchangeRequests.forEach((request) => {
+      excludedUserIds.add(request.requester.toString());
+      excludedUserIds.add(request.receiver.toString());
+    });
+
+    const excludedObjectIds = Array.from(excludedUserIds).map(
+      (id) => new mongoose.Types.ObjectId(id),
+    );
+
+    // Build search and location match conditions
+    const searchMatch: any = {};
     if (query.search) {
-      searchConditions.push(
+      searchMatch.$or = [
         { first_name: { $regex: query.search, $options: "i" } },
         { last_name: { $regex: query.search, $options: "i" } },
         { username: { $regex: query.search, $options: "i" } },
-      );
-    }
-
-    // Filter by location
-    if (query.location) {
-      locationConditions.push(
-        { city: { $regex: query.location, $options: "i" } },
-        { country: { $regex: query.location, $options: "i" } },
-      );
-    }
-
-    // If skill filter is provided, find users with that skill first
-    if (query.skill) {
-      const [teachSkills, learnSkills] = await Promise.all([
-        SkillToTeach.find({
-          name: { $regex: query.skill, $options: "i" },
-        }).select("user"),
-        SkillToLearn.find({
-          name: { $regex: query.skill, $options: "i" },
-        }).select("user"),
-      ]);
-
-      const allSkillUserIds = [
-        ...teachSkills.map((s) => s.user.toString()),
-        ...learnSkills.map((s) => s.user.toString()),
       ];
-      const skillUserIds = [...new Set(allSkillUserIds)]; // Remove duplicates
+    }
+    if (query.location) {
+      const locationCondition = {
+        $or: [
+          { city: { $regex: query.location, $options: "i" } },
+          { country: { $regex: query.location, $options: "i" } },
+        ],
+      };
+      if (searchMatch.$or) {
+        searchMatch.$and = [{ $or: searchMatch.$or }, locationCondition];
+        delete searchMatch.$or;
+      } else {
+        Object.assign(searchMatch, locationCondition);
+      }
+    }
 
-      // Filter out excluded users
-      const filteredSkillUserIds = skillUserIds.filter(
-        (id) => !excludedUserIds.has(id),
-      );
-
-      if (filteredSkillUserIds.length === 0) {
-        // No users have this skill after exclusions
-        return SuccessResponse({
-          message: "Connections retrieved successfully",
-          data: {
-            connections: [],
-            pagination: {
-              page,
-              limit,
-              total: 0,
-              totalPages: 0,
+    // Use aggregation to find matching users at database level
+    // A match requires:
+    // 1. Other user teaches something current user wants to learn
+    // 2. Other user wants to learn something current user teaches
+    const matchingUsersAggregation = await User.aggregate([
+      // Stage 1: Filter out excluded users and deleted users
+      {
+        $match: {
+          _id: { $nin: excludedObjectIds },
+          deletedAt: null,
+          ...searchMatch,
+        },
+      },
+      // Stage 2: Lookup skills to teach for each user
+      {
+        $lookup: {
+          from: "skilltoteaches",
+          localField: "_id",
+          foreignField: "user",
+          as: "teachSkills",
+        },
+      },
+      // Stage 3: Lookup skills to learn for each user
+      {
+        $lookup: {
+          from: "skilltolearns",
+          localField: "_id",
+          foreignField: "user",
+          as: "learnSkills",
+        },
+      },
+      // Stage 4: Add lowercase skill names for matching
+      {
+        $addFields: {
+          teachSkillNames: {
+            $map: {
+              input: "$teachSkills",
+              as: "skill",
+              in: { $toLower: "$$skill.name" },
             },
           },
-          httpStatus: StatusCodes.OK,
-        });
-      }
-
-      filter._id = {
-        $in: filteredSkillUserIds.map((id) => new mongoose.Types.ObjectId(id)),
-      };
-    } else if (excludedUserIds.size > 0) {
-      // Exclude current user and users with exchange requests
-      filter._id = {
-        $nin: Array.from(excludedUserIds).map(
-          (id) => new mongoose.Types.ObjectId(id),
-        ),
-      };
-    }
-
-    // Combine search and location conditions
-    if (searchConditions.length > 0 && locationConditions.length > 0) {
-      filter.$and = [{ $or: searchConditions }, { $or: locationConditions }];
-    } else if (searchConditions.length > 0) {
-      filter.$or = searchConditions;
-    } else if (locationConditions.length > 0) {
-      filter.$or = locationConditions;
-    }
-
-    // Get users
-    const users = await User.find(filter)
-      .select("-password -__v -email")
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const totalUsers = await User.countDocuments(filter);
-
-    // Get user IDs
-    const userIds = users.map((user) => user._id);
-
-    // Fetch skills and reviews in parallel
-    const [skillsToTeach, skillsToLearn, reviews] = await Promise.all([
-      SkillToTeach.find({ user: { $in: userIds } }),
-      SkillToLearn.find({ user: { $in: userIds } }),
-      Review.aggregate([
-        {
-          $match: {
-            reviewedUser: { $in: userIds },
+          learnSkillNames: {
+            $map: {
+              input: "$learnSkills",
+              as: "skill",
+              in: { $toLower: "$$skill.name" },
+            },
           },
         },
-        {
-          $group: {
-            _id: "$reviewedUser",
-            averageRating: { $avg: "$rating" },
-            numberOfReviews: { $sum: 1 },
-          },
+      },
+      // Stage 5: Check for mutual match
+      {
+        $match: {
+          // Other user teaches something I want to learn
+          teachSkillNames: { $in: currentUserLearnSkillNames },
+          // Other user wants to learn something I teach
+          learnSkillNames: { $in: currentUserTeachSkillNames },
         },
-      ]),
+      },
+      // Stage 6: Apply skill filter if provided
+      ...(query.skill
+        ? [
+            {
+              $match: {
+                $or: [
+                  {
+                    teachSkillNames: {
+                      $regex: query.skill.toLowerCase(),
+                      $options: "i",
+                    },
+                  },
+                  {
+                    learnSkillNames: {
+                      $regex: query.skill.toLowerCase(),
+                      $options: "i",
+                    },
+                  },
+                ],
+              },
+            },
+          ]
+        : []),
+      // Stage 7: Lookup reviews for rating
+      {
+        $lookup: {
+          from: "reviews",
+          localField: "_id",
+          foreignField: "reviewedUser",
+          as: "reviews",
+        },
+      },
+      // Stage 8: Calculate average rating
+      {
+        $addFields: {
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: "$reviews" }, 0] },
+              then: { $avg: "$reviews.rating" },
+              else: 0,
+            },
+          },
+          numberOfReviews: { $size: "$reviews" },
+        },
+      },
+      // Stage 9: Sort by creation date
+      { $sort: { createdAt: -1 } },
+      // Stage 10: Facet for pagination
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: skip }, { $limit: limit }],
+        },
+      },
     ]);
 
-    // Create maps for quick lookup
-    const skillsToTeachMap = new Map();
-    const skillsToLearnMap = new Map();
-    const reviewsMap = new Map();
-
-    skillsToTeach.forEach((skill) => {
-      const userId = skill.user.toString();
-      if (!skillsToTeachMap.has(userId)) {
-        skillsToTeachMap.set(userId, []);
-      }
-      skillsToTeachMap.get(userId).push(skill.name);
-    });
-
-    skillsToLearn.forEach((skill) => {
-      const userId = skill.user.toString();
-      if (!skillsToLearnMap.has(userId)) {
-        skillsToLearnMap.set(userId, []);
-      }
-      skillsToLearnMap.get(userId).push(skill.name);
-    });
-
-    reviews.forEach((review) => {
-      reviewsMap.set(review._id.toString(), {
-        rating: Number(review.averageRating.toFixed(1)),
-        numberOfReviews: review.numberOfReviews,
-      });
-    });
+    const result = matchingUsersAggregation[0];
+    const totalUsers = result.metadata[0]?.total || 0;
+    const users = result.data;
 
     // Format response data
-    const connections = users.map((user) => {
-      const userData = user.toObject();
-      const userId = user._id.toString();
-
+    const connections = users.map((user: any) => {
       // Generate initials
       const initials =
-        userData.first_name.charAt(0).toUpperCase() +
-        userData.last_name.charAt(0).toUpperCase();
+        user.first_name.charAt(0).toUpperCase() +
+        user.last_name.charAt(0).toUpperCase();
 
       // Combine location
       const location =
-        userData.city && userData.country
-          ? `${userData.city}, ${userData.country}`
-          : userData.city || userData.country || null;
-
-      // Get rating data
-      const reviewData = reviewsMap.get(userId) || {
-        rating: 0,
-        numberOfReviews: 0,
-      };
+        user.city && user.country
+          ? `${user.city}, ${user.country}`
+          : user.city || user.country || null;
 
       return {
-        id: userId,
-        avatarUrl: userData.profile_picture || null,
+        id: user._id.toString(),
+        avatarUrl: user.profile_picture || null,
         initials,
-        name: `${userData.first_name} ${userData.last_name}`,
+        name: `${user.first_name} ${user.last_name}`,
         location,
-        rating: reviewData.rating,
-        numberOfReviews: reviewData.numberOfReviews,
-        bio: userData.about || null,
-        website: userData.website || null,
-        teachingSkills: skillsToTeachMap.get(userId) || [],
-        learningSkills: skillsToLearnMap.get(userId) || [],
+        rating: user.averageRating
+          ? Number(user.averageRating.toFixed(1))
+          : 0,
+        numberOfReviews: user.numberOfReviews || 0,
+        bio: user.about || null,
+        website: user.website || null,
+        teachingSkills: user.teachSkills.map((s: any) => s.name),
+        learningSkills: user.learnSkills.map((s: any) => s.name),
       };
     });
 
