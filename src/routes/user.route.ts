@@ -5,16 +5,29 @@ import {
   deleteUser,
   getQuickStats,
   changePassword,
+  getUserProfile,
 } from "../controllers/user.controller";
 import {
   UpdateUserSchema,
   ChangePasswordSchema,
+  UserIdParamSchema,
 } from "../validators/user.validators";
-import { authenticate } from "../middlewares/auth.middleware";
+import {
+  authenticate,
+  optionalAuthenticate,
+} from "../middlewares/auth.middleware";
 
 const router = Router();
 
-// All user routes require authentication
+// Public routes with optional authentication (for connection status)
+router.get(
+  "/:userId/profile",
+  optionalAuthenticate,
+  UserIdParamSchema,
+  getUserProfile,
+);
+
+// Protected routes (authentication required)
 router.use(authenticate);
 
 router.get("/me", getUser);

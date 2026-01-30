@@ -311,6 +311,226 @@ class UserService {
       httpStatus: StatusCodes.OK,
     });
   }
+  async getUserProfile(userId: string, currentUserId?: string) {
+    // Find user by ID
+    const user = await User.findOne({
+      _id: userId,
+      deletedAt: null,
+    }).select("-password -__v -fcmToken -email");
+
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Fetch all related data in parallel
+    const [
+      skillsToTeach,
+      skillsToLearn,
+      reviews,
+      sessionStats,
+      ratingStats,
+    ] = await Promise.all([
+      // Skills to teach
+      SkillToTeach.find({ user: userId }).select("name difficulty -_id"),
+
+      // Skills to learn
+      SkillToLearn.find({ user: userId }).select("name difficulty -_id"),
+
+      // Reviews for this user with reviewer details
+      Review.find({ reviewedUser: userId })
+        .populate({
+          path: "reviewer",
+          select: "first_name last_name username profile_picture",
+        })
+        .sort({ createdAt: -1 }),
+
+      // Session stats
+      Session.aggregate([
+        {
+          $match: {
+            $or: [{ instructor: userObjectId }, { learner: userObjectId }],
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalSessions: { $sum: 1 },
+            completedSessions: {
+              $sum: { $cond: [{ $eq: ["$status", SessionStatus.COMPLETED] }, 1, 0] },
+            },
+            // Count unique skills taught (where user is instructor and session is completed)
+            skillsTaughtSessions: {
+              $push: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ["$instructor", userObjectId] },
+                      { $eq: ["$status", SessionStatus.COMPLETED] },
+                    ],
+                  },
+                  "$skill",
+                  null,
+                ],
+              },
+            },
+            // Count unique skills learned (where user is learner and session is completed)
+            skillsLearnedSessions: {
+              $push: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ["$learner", userObjectId] },
+                      { $eq: ["$status", SessionStatus.COMPLETED] },
+                    ],
+                  },
+                  "$skill",
+                  null,
+                ],
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            totalSessions: 1,
+            completedSessions: 1,
+            skillsTaught: {
+              $size: {
+                $setDifference: ["$skillsTaughtSessions", [null]],
+              },
+            },
+            skillsLearned: {
+              $size: {
+                $setDifference: ["$skillsLearnedSessions", [null]],
+              },
+            },
+          },
+        },
+      ]),
+
+      // Rating stats
+      Review.aggregate([
+        { $match: { reviewedUser: userObjectId } },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    // Format user data
+    const userData = user.toObject();
+
+    // Format reviews
+    const formattedReviews = reviews.map((review) => {
+      const reviewData = review.toObject();
+      const reviewer = reviewData.reviewer as any;
+
+      return {
+        id: reviewData._id,
+        reviewer: {
+          id: reviewer._id,
+          name: `${reviewer.first_name} ${reviewer.last_name}`,
+          username: reviewer.username,
+          avatar: reviewer.profile_picture || "",
+          initials:
+            reviewer.first_name.charAt(0).toUpperCase() +
+            reviewer.last_name.charAt(0).toUpperCase(),
+        },
+        rating: reviewData.rating,
+        comment: reviewData.comment || "",
+        skill: null, // Review model doesn't have skill field
+        createdAt: reviewData.createdAt,
+      };
+    });
+
+    // Extract stats
+    const stats = {
+      totalSessions: sessionStats[0]?.totalSessions || 0,
+      completedSessions: sessionStats[0]?.completedSessions || 0,
+      averageRating: ratingStats[0]?.averageRating
+        ? Math.round(ratingStats[0].averageRating * 10) / 10
+        : 0,
+      totalReviews: ratingStats[0]?.totalReviews || 0,
+      skillsTaught: sessionStats[0]?.skillsTaught || 0,
+      skillsLearned: sessionStats[0]?.skillsLearned || 0,
+    };
+
+    // Check connection status if current user is authenticated
+    let connectionStatus: string | null = null;
+
+    if (currentUserId && currentUserId !== userId) {
+      const exchangeRequest = await ExchangeRequest.findOne({
+        $or: [
+          { requester: currentUserId, receiver: userId },
+          { requester: userId, receiver: currentUserId },
+        ],
+      }).select("requester status");
+
+      if (exchangeRequest) {
+        const isRequester =
+          exchangeRequest.requester.toString() === currentUserId;
+
+        switch (exchangeRequest.status) {
+          case "pending":
+            connectionStatus = isRequester ? "pending_sent" : "pending_received";
+            break;
+          case "accepted":
+            connectionStatus = "connected";
+            break;
+          case "declined":
+            connectionStatus = "none";
+            break;
+          default:
+            connectionStatus = "none";
+        }
+      } else {
+        connectionStatus = "none";
+      }
+    }
+
+    // Build response
+    const profileData = {
+      id: userData._id,
+      firstName: userData.first_name,
+      lastName: userData.last_name,
+      username: userData.username,
+      avatar: userData.profile_picture || "",
+      initials:
+        userData.first_name.charAt(0).toUpperCase() +
+        userData.last_name.charAt(0).toUpperCase(),
+      bio: userData.about || "",
+      location: {
+        city: userData.city || null,
+        country: userData.country || null,
+      },
+      website: userData.website || null,
+      weeklyAvailability: userData.weekly_availability || 0,
+      memberSince: userData.createdAt,
+      skillsToTeach: skillsToTeach.map((s) => ({
+        name: s.name,
+        level: s.difficulty,
+      })),
+      skillsToLearn: skillsToLearn.map((s) => ({
+        name: s.name,
+        level: s.difficulty,
+      })),
+      stats,
+      reviews: formattedReviews,
+      connectionStatus,
+    };
+
+    return SuccessResponse({
+      message: "User profile retrieved successfully",
+      data: profileData,
+      httpStatus: StatusCodes.OK,
+    });
+  }
 }
 
 const userService = new UserService();

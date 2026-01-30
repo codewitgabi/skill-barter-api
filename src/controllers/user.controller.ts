@@ -71,3 +71,15 @@ export const changePassword = catchAsync(
     return res.status(response.httpStatus).json(response);
   },
 );
+
+export const getUserProfile = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.params.userId as string;
+    // Current user ID is optional (for connection status check)
+    const currentUserId = req.user?.userId;
+
+    const response = await userService.getUserProfile(userId, currentUserId);
+
+    return res.status(response.httpStatus).json(response);
+  },
+);

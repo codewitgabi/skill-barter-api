@@ -1,7 +1,16 @@
 import { validateRequest } from "../middlewares/validation.middleware";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 
 const validDifficultyLevels = ["beginner", "intermediate", "advanced"];
+
+export const UserIdParamSchema = [
+  param("userId")
+    .notEmpty()
+    .withMessage("User ID is required")
+    .isMongoId()
+    .withMessage("Invalid user ID format"),
+  validateRequest,
+];
 
 export const UpdateUserSchema = [
   body("first_name")
