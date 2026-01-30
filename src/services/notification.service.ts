@@ -7,7 +7,7 @@ import NotificationSettings from "../models/notificationSettings.model";
 import { FRONTEND_URL } from "../utils/constants";
 import { NotFoundError } from "../utils/api.errors";
 import transporter from "../config/mail.config";
-import { firestore as db } from "../config/firebase.config";
+import { firestore as db, messaging } from "../config/firebase.config";
 import sysLogger from "../utils/logger";
 
 interface CreateNotificationData {
@@ -129,26 +129,73 @@ class NotificationService {
   }
 
   private async sendPushNotification(
+    fcmToken: string,
     userId: string,
     title: string,
     body: string,
     data?: Record<string, any>,
   ): Promise<void> {
     try {
-      // TODO: Implement push notification service (FCM, OneSignal, etc.)
-      // For now, this is a placeholder
-      // You'll need to:
-      // 1. Store device tokens in User model or separate DeviceToken model
-      // 2. Integrate with FCM or similar service
-      // 3. Send push notification to user's devices
+      if (!fcmToken) {
+        sysLogger.info(
+          `No FCM token found for user ${userId}, skipping push notification`,
+        );
+        return;
+      }
 
+      // Convert all data values to strings (FCM requirement)
+      const stringifiedData: Record<string, string> = {};
+      if (data) {
+        for (const [key, value] of Object.entries(data)) {
+          stringifiedData[key] =
+            typeof value === "string" ? value : JSON.stringify(value);
+        }
+      }
+
+      const message = {
+        token: fcmToken,
+        notification: {
+          title,
+          body,
+        },
+        data: stringifiedData,
+        android: {
+          priority: "high" as const,
+          notification: {
+            sound: "default",
+            clickAction: "FLUTTER_NOTIFICATION_CLICK",
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              badge: 1,
+            },
+          },
+        },
+      };
+
+      const response = await messaging.send(message);
       sysLogger.info(
-        `Push notification for user ${userId}: ${title} - ${body}${data ? ` | Data: ${JSON.stringify(data)}` : ""}`,
+        `Push notification sent successfully to user ${userId}: ${response}`,
       );
     } catch (error: any) {
-      sysLogger.error(
-        `Failed to send push notification to user ${userId}: ${error.message}`,
-      );
+      // Handle invalid token - could be expired or unregistered
+      if (
+        error.code === "messaging/invalid-registration-token" ||
+        error.code === "messaging/registration-token-not-registered"
+      ) {
+        sysLogger.warn(
+          `Invalid FCM token for user ${userId}, token may be expired`,
+        );
+        // Optionally: Clear the invalid token from user record
+        await User.findByIdAndUpdate(userId, { $set: { fcmToken: null } });
+      } else {
+        sysLogger.error(
+          `Failed to send push notification to user ${userId}: ${error.message}`,
+        );
+      }
       // Don't throw - we don't want push failures to break the flow
     }
   }
@@ -240,12 +287,13 @@ class NotificationService {
       );
     }
 
-    // Send push notification if enabled
-    if (pushEnabled) {
+    // Send push notification if enabled and user has FCM token
+    if (pushEnabled && user.fcmToken) {
       const pushTitle = template?.pushTitle || data.title;
       const pushBody = template?.pushBody || data.message;
       promises.push(
         this.sendPushNotification(
+          user.fcmToken,
           data.userId,
           pushTitle,
           pushBody,
