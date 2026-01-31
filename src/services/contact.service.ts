@@ -2,6 +2,14 @@ import { firestore } from "../config/firebase.config";
 import { FieldValue } from "firebase-admin/firestore";
 import sysLogger from "../utils/logger";
 
+export interface ParticipantData {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string | null;
+  initials: string;
+}
+
 class ContactService {
   private conversationsCollection = "conversations";
 
@@ -11,11 +19,11 @@ class ContactService {
   }
 
   async createConversation(
-    userId1: string,
-    userId2: string,
+    user1: ParticipantData,
+    user2: ParticipantData,
     exchangeRequestId: string,
   ): Promise<{ conversationId: string; created: boolean }> {
-    const conversationId = this.generateConversationId(userId1, userId2);
+    const conversationId = this.generateConversationId(user1.id, user2.id);
     const conversationRef = firestore
       .collection(this.conversationsCollection)
       .doc(conversationId);
@@ -31,26 +39,41 @@ class ContactService {
         return { conversationId, created: false };
       }
 
-      // Create new conversation document
+      // Create new conversation document with denormalized user data
       const conversationData = {
-        participants: [userId1, userId2],
+        participantIds: [user1.id, user2.id],
+        participants: {
+          [user1.id]: {
+            id: user1.id,
+            name: user1.name,
+            username: user1.username,
+            avatar: user1.avatar,
+            initials: user1.initials,
+          },
+          [user2.id]: {
+            id: user2.id,
+            name: user2.name,
+            username: user2.username,
+            avatar: user2.avatar,
+            initials: user2.initials,
+          },
+        },
         exchangeRequestId,
         createdAt: FieldValue.serverTimestamp(),
         lastMessage: null,
         unreadCount: {
-          [userId1]: 0,
-          [userId2]: 0,
+          [user1.id]: 0,
+          [user2.id]: 0,
         },
       };
 
       await conversationRef.set(conversationData);
 
-      console.log(`Created conversation ${conversationId} in Firestore`);
+      sysLogger.info(`Created conversation ${conversationId} in Firestore`);
       return { conversationId, created: true };
     } catch (error) {
-      console.error(
-        `Failed to create conversation in Firestore:`,
-        error instanceof Error ? error.message : "Unknown error",
+      sysLogger.error(
+        `Failed to create conversation in Firestore: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
       throw error;
     }

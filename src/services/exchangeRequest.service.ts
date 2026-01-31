@@ -380,20 +380,6 @@ class ExchangeRequestService {
       );
     }
 
-    // Create conversation in Firestore for messaging
-    try {
-      await contactService.createConversation(
-        exchangeRequest.requester.toString(),
-        userId,
-        requestId,
-      );
-    } catch (error: any) {
-      console.error(
-        "Failed to create conversation in Firestore after exchange request acceptance:",
-        error.message,
-      );
-    }
-
     // Populate requester and receiver details
     await exchangeRequest.populate([
       {
@@ -409,6 +395,36 @@ class ExchangeRequestService {
     const requestData = exchangeRequest.toObject();
     const requesterData = requestData.requester as any;
     const receiverData = requestData.receiver as any;
+
+    // Create conversation in Firestore for messaging with user details
+    try {
+      await contactService.createConversation(
+        {
+          id: requesterData._id.toString(),
+          name: `${requesterData.first_name} ${requesterData.last_name}`,
+          username: requesterData.username,
+          avatar: requesterData.profile_picture || null,
+          initials:
+            requesterData.first_name.charAt(0).toUpperCase() +
+            requesterData.last_name.charAt(0).toUpperCase(),
+        },
+        {
+          id: receiverData._id.toString(),
+          name: `${receiverData.first_name} ${receiverData.last_name}`,
+          username: receiverData.username,
+          avatar: receiverData.profile_picture || null,
+          initials:
+            receiverData.first_name.charAt(0).toUpperCase() +
+            receiverData.last_name.charAt(0).toUpperCase(),
+        },
+        requestId,
+      );
+    } catch (error: any) {
+      console.error(
+        "Failed to create conversation in Firestore after exchange request acceptance:",
+        error.message,
+      );
+    }
 
     // Format response
     const formattedRequest = {
