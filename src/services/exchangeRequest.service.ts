@@ -8,6 +8,7 @@ import { SuccessResponse } from "../utils/responses";
 import { StatusCodes } from "http-status-codes";
 import sessionBookingService from "./sessionBooking.service";
 import notificationService from "./notification.service";
+import contactService from "./contact.service";
 import { NotificationType } from "../models/notification.model";
 import { FRONTEND_URL } from "../utils/constants";
 
@@ -375,6 +376,20 @@ class ExchangeRequestService {
     } catch (error: any) {
       console.error(
         "Failed to create session bookings after exchange request acceptance:",
+        error.message,
+      );
+    }
+
+    // Create conversation in Firestore for messaging
+    try {
+      await contactService.createConversation(
+        exchangeRequest.requester.toString(),
+        userId,
+        requestId,
+      );
+    } catch (error: any) {
+      console.error(
+        "Failed to create conversation in Firestore after exchange request acceptance:",
         error.message,
       );
     }
