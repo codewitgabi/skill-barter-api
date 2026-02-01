@@ -6,12 +6,14 @@ import {
   getQuickStats,
   changePassword,
   getUserProfile,
+  createReview,
 } from "../controllers/user.controller";
 import {
   UpdateUserSchema,
   ChangePasswordSchema,
   UserIdParamSchema,
 } from "../validators/user.validators";
+import { CreateReviewSchema } from "../validators/review.validators";
 import {
   authenticate,
   optionalAuthenticate,
@@ -35,5 +37,6 @@ router.get("/me/stats", getQuickStats);
 router.patch("/me", UpdateUserSchema, updateUser);
 router.delete("/me", deleteUser);
 router.post("/me/change-password", ChangePasswordSchema, changePassword);
+router.post("/:userId/reviews", UserIdParamSchema, CreateReviewSchema, createReview);
 
 export default router;

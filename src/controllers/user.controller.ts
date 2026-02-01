@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../utils/catch-async";
 import userService from "../services/user.service";
 import authService from "../services/auth.service";
+import reviewService from "../services/review.service";
 import { UnauthorizedError } from "../utils/api.errors";
 
 export const getUser = catchAsync(async (req: Request, res: Response) => {
@@ -83,3 +84,22 @@ export const getUserProfile = catchAsync(
     return res.status(response.httpStatus).json(response);
   },
 );
+
+export const createReview = catchAsync(async (req: Request, res: Response) => {
+  const reviewerId = req.user?.userId;
+
+  if (!reviewerId) {
+    throw new UnauthorizedError("Unauthorized");
+  }
+
+  const reviewedUserId = req.params.userId as string;
+
+  const response = await reviewService.createReview(reviewerId, {
+    reviewedUserId,
+    skill: req.body.skill,
+    rating: req.body.rating,
+    comment: req.body.comment,
+  });
+
+  return res.status(response.httpStatus).json(response);
+});

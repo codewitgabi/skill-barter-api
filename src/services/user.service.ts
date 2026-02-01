@@ -444,7 +444,7 @@ class UserService {
         },
         rating: reviewData.rating,
         comment: reviewData.comment || "",
-        skill: null, // Review model doesn't have skill field
+        skill: reviewData.skill,
         createdAt: reviewData.createdAt,
       };
     });
